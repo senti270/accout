@@ -1,12 +1,13 @@
 /**
  * 데이터베이스 초기화 API
  * 배포 후 한 번만 실행하면 됩니다
+ * GET 또는 POST 요청 모두 허용
  */
 
 import { initializeDatabase } from "@/lib/db-init";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+async function handleInit(request: NextRequest) {
   try {
     // 보안: 프로덕션에서는 인증 추가 권장
     if (process.env.NODE_ENV === "production") {
@@ -36,5 +37,15 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// GET 요청 허용 (브라우저에서 직접 접속 가능)
+export async function GET(request: NextRequest) {
+  return handleInit(request);
+}
+
+// POST 요청 허용
+export async function POST(request: NextRequest) {
+  return handleInit(request);
 }
 
