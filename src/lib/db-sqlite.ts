@@ -40,7 +40,6 @@ export function closeSQLiteDatabase(): void {
 
 export function sqliteTransaction<T>(callback: (db: Database.Database) => T): T {
   const db = getSQLiteDatabase();
-  const transaction = db.transaction(callback);
-  return transaction();
+  return db.transaction(callback)();
 }
 
