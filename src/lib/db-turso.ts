@@ -104,7 +104,11 @@ export async function batch(queries: Array<{ sql: string; args?: unknown[] }>): 
   const client = getTursoClient();
   
   try {
-    await client.batch(queries);
+    const batchQueries = queries.map(q => ({
+      sql: q.sql,
+      args: (q.args || []) as unknown as any[],
+    }));
+    await client.batch(batchQueries);
   } catch (error) {
     console.error("Turso 배치 실행 오류:", error);
     throw error;
