@@ -43,7 +43,7 @@ export async function query<T = unknown>(
   try {
     const result = await client.execute({
       sql,
-      args: params || [],
+      args: (params || []) as unknown as any[],
     });
     
     return result.rows as T[];
@@ -60,8 +60,19 @@ export async function queryOne<T = unknown>(
   sql: string,
   params?: unknown[]
 ): Promise<T | null> {
-  const rows = await query<T>(sql, params);
-  return rows[0] || null;
+  const client = getTursoClient();
+  
+  try {
+    const result = await client.execute({
+      sql,
+      args: (params || []) as unknown as any[],
+    });
+    
+    return (result.rows[0] as T) || null;
+  } catch (error) {
+    console.error("Turso 쿼리 오류:", error);
+    throw error;
+  }
 }
 
 /**
@@ -76,7 +87,7 @@ export async function execute(
   try {
     const result = await client.execute({
       sql,
-      args: params || [],
+      args: (params || []) as unknown as any[],
     });
     
     return { rowCount: result.rowsAffected || 0 };
