@@ -139,6 +139,7 @@ async function initializeSQLite(): Promise<void> {
       deposit_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
       withdrawal_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
       transaction_date DATE NOT NULL,
+      description TEXT,
       memo TEXT,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -16,6 +16,7 @@ interface VendorAutocompleteProps {
   value: number | null;
   onChange: (vendorId: number | null, vendorName: string) => void;
   onManageClick?: () => void;
+  onVendorAdded?: () => void;
   className?: string;
 }
 
@@ -24,17 +25,25 @@ export default function VendorAutocomplete({
   value,
   onChange,
   onManageClick,
+  onVendorAdded,
   className = "",
 }: VendorAutocompleteProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [recentVendors, setRecentVendors] = useState<Vendor[]>([]);
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchVendors();
+    if (workspaceId) {
+      const loadData = async () => {
+        await fetchVendors();
+        fetchRecentVendors();
+      };
+      loadData();
+    }
   }, [workspaceId]);
 
   useEffect(() => {
@@ -65,6 +74,24 @@ export default function VendorAutocomplete({
     }
   }, [searchTerm, vendors]);
 
+  // vendors가 로드되면 recentVendors를 다시 매칭하여 전체 정보 업데이트
+  useEffect(() => {
+    if (vendors.length > 0 && recentVendors.length > 0) {
+      const recentVendorIds = recentVendors.map((v) => v.id);
+      const fullRecentVendors = vendors.filter((v) =>
+        recentVendorIds.includes(v.id)
+      );
+      // 최근 사용 순서 유지
+      const sortedRecentVendors = recentVendorIds
+        .map((id: number) => fullRecentVendors.find((v) => v.id === id))
+        .filter((v: Vendor | undefined) => v !== undefined) as Vendor[];
+      if (sortedRecentVendors.length > 0) {
+        setRecentVendors(sortedRecentVendors);
+      }
+    }
+  }, [vendors]);
+  
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -90,6 +117,48 @@ export default function VendorAutocomplete({
       }
     } catch (error) {
       console.error("거래처 조회 오류:", error);
+    }
+  };
+
+  const fetchRecentVendors = async () => {
+    try {
+      const response = await fetch(
+        `/api/vendors/recent?workspace_id=${workspaceId}&limit=10`
+      );
+      const data = await response.json();
+      if (data.success && data.data.length > 0) {
+        // 최근 사용 거래처 ID 목록
+        const recentVendorIds = data.data.map((v: { id: number }) => v.id);
+        
+        // vendors가 로드되어 있으면 전체 정보 매칭, 없으면 이름만 저장
+        if (vendors.length > 0) {
+          const fullRecentVendors = vendors.filter((v) =>
+            recentVendorIds.includes(v.id)
+          );
+          // 최근 사용 순서 유지
+          const sortedRecentVendors = recentVendorIds
+            .map((id: number) => fullRecentVendors.find((v) => v.id === id))
+            .filter((v: Vendor | undefined) => v !== undefined) as Vendor[];
+          setRecentVendors(sortedRecentVendors);
+        } else {
+          // vendors가 아직 로드되지 않았으면 이름만 저장
+          setRecentVendors(
+            data.data.map((v: { id: number; name: string }) => ({
+              id: v.id,
+              name: v.name,
+              business_number: null,
+              contact_person: null,
+              contact_phone: null,
+              tax_email: null,
+            }))
+          );
+        }
+      } else {
+        setRecentVendors([]);
+      }
+    } catch (error) {
+      console.error("최근 사용 거래처 조회 오류:", error);
+      setRecentVendors([]);
     }
   };
 
@@ -166,6 +235,21 @@ export default function VendorAutocomplete({
           </button>
         )}
       </div>
+      {/* 최근 사용 거래처 태그 */}
+      {!selectedVendor && recentVendors.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {recentVendors.map((vendor) => (
+            <button
+              key={vendor.id}
+              type="button"
+              onClick={() => handleSelect(vendor)}
+              className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors"
+            >
+              {vendor.name}
+            </button>
+          ))}
+        </div>
+      )}
       {selectedVendor && (
         <div className="mt-1 text-xs text-gray-500">
           {selectedVendor.contact_person && (

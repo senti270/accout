@@ -35,9 +35,11 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [recentCategories, setRecentCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showVendorModal, setShowVendorModal] = useState(false);
+  const [vendorAutocompleteKey, setVendorAutocompleteKey] = useState(0);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<number | null>(
     null
   );
@@ -67,6 +69,7 @@ export default function TransactionsPage() {
       setSelectedWorkspaceId(workspaceId);
       fetchProjects(workspaceId);
       fetchVendors(workspaceId);
+      fetchRecentCategories(workspaceId);
       fetchTransactions(workspaceId);
     }
   }, []);
@@ -100,6 +103,20 @@ export default function TransactionsPage() {
       }
     } catch (error) {
       console.error("거래처 조회 오류:", error);
+    }
+  };
+
+  const fetchRecentCategories = async (workspaceId: number) => {
+    try {
+      const response = await fetch(
+        `/api/categories/recent?workspace_id=${workspaceId}&limit=10`
+      );
+      const data = await response.json();
+      if (data.success) {
+        setRecentCategories(data.data);
+      }
+    } catch (error) {
+      console.error("최근 사용 카테고리 조회 오류:", error);
     }
   };
 
@@ -175,6 +192,11 @@ export default function TransactionsPage() {
         });
         setShowAddForm(false);
         fetchTransactions(selectedWorkspaceId);
+        if (selectedWorkspaceId) {
+          fetchRecentCategories(selectedWorkspaceId);
+          // VendorAutocomplete 새로고침 (최근 거래처 갱신)
+          setVendorAutocompleteKey((prev) => prev + 1);
+        }
       } else {
         setError(data.message || "거래 내역 추가에 실패했습니다.");
       }
@@ -334,6 +356,23 @@ export default function TransactionsPage() {
                   placeholder="예: 식비, 교통비"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+                {/* 최근 사용 카테고리 태그 */}
+                {!formData.category && recentCategories.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {recentCategories.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() =>
+                          setFormData({ ...formData, category: category })
+                        }
+                        className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium hover:bg-green-200 transition-colors"
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {selectedWorkspaceId && (
                 <div className="md:col-span-2">
@@ -341,6 +380,7 @@ export default function TransactionsPage() {
                     거래처
                   </label>
                   <VendorAutocomplete
+                    key={vendorAutocompleteKey}
                     workspaceId={selectedWorkspaceId}
                     value={formData.vendor_id}
                     onChange={(vendorId, vendorName) => {
@@ -539,6 +579,8 @@ export default function TransactionsPage() {
           onClose={() => setShowVendorModal(false)}
           onVendorAdded={() => {
             fetchVendors(selectedWorkspaceId);
+            // VendorAutocomplete 새로고침 (최근 거래처 갱신)
+            setVendorAutocompleteKey((prev) => prev + 1);
           }}
         />
       )}
