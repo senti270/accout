@@ -162,10 +162,16 @@ export async function POST(request: NextRequest) {
       { success: true, message: "거래처가 생성되었습니다.", data: vendor },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("거래처 생성 오류:", error);
+    const errorMessage = error?.message || "거래처 생성에 실패했습니다.";
     return NextResponse.json(
-      { success: false, message: "거래처 생성에 실패했습니다." },
+      { 
+        success: false, 
+        message: errorMessage.includes("no such table") 
+          ? "데이터베이스 테이블이 없습니다. /api/init-db를 실행해주세요." 
+          : errorMessage 
+      },
       { status: 500 }
     );
   }
