@@ -309,9 +309,6 @@ export default function ProjectsPage() {
                 ) : (
                   projects.map((project) => (
                     <tr key={project.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {project.id}
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {editingId === project.id ? (
                           <input
@@ -320,11 +317,11 @@ export default function ProjectsPage() {
                             onChange={(e) =>
                               setEditData({ ...editData, name: e.target.value })
                             }
-                            className="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                             autoFocus
                           />
                         ) : (
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm font-medium text-gray-900">
                             {project.name}
                           </div>
                         )}
