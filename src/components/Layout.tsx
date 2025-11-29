@@ -15,17 +15,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window === "undefined") return;
+    
     // 인증 확인
     const auth = localStorage.getItem("authenticated");
     if (auth === "true") {
       setAuthenticated(true);
+      setLoading(false);
     } else {
       // 로그인 페이지가 아닐 때만 리다이렉트
       if (pathname !== "/login") {
         router.push("/login");
       }
+      setLoading(false);
     }
-    setLoading(false);
   }, [router, pathname]);
 
   useEffect(() => {
