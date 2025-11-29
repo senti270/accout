@@ -24,7 +24,6 @@ export default function ProjectsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    id: "",
     name: "",
     start_date: "",
     end_date: "",
@@ -75,8 +74,8 @@ export default function ProjectsPage() {
       return;
     }
 
-    if (!formData.id.trim() || !formData.name.trim()) {
-      setError("프로젝트 아이디와 이름을 입력해주세요.");
+    if (!formData.name.trim()) {
+      setError("프로젝트명을 입력해주세요.");
       return;
     }
 
@@ -85,7 +84,6 @@ export default function ProjectsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: formData.id.trim(),
           workspace_id: selectedWorkspaceId,
           name: formData.name.trim(),
           start_date: formData.start_date || null,
@@ -98,7 +96,6 @@ export default function ProjectsPage() {
 
       if (data.success) {
         setFormData({
-          id: "",
           name: "",
           start_date: "",
           end_date: "",
@@ -216,21 +213,6 @@ export default function ProjectsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  프로젝트 아이디 *
-                </label>
-                <input
-                  type="text"
-                  value={formData.id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, id: e.target.value })
-                  }
-                  required
-                  placeholder="예: PROJ-001"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   프로젝트명 *
                 </label>
                 <input
@@ -304,9 +286,6 @@ export default function ProjectsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    프로젝트 아이디
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     프로젝트명
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -323,7 +302,7 @@ export default function ProjectsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {projects.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
                       프로젝트가 없습니다.
                     </td>
                   </tr>
