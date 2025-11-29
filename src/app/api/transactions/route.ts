@@ -119,10 +119,23 @@ export async function GET(request: NextRequest) {
         offset: parseInt(offset),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("거래 내역 조회 오류:", error);
+    const errorMessage = error?.message || "거래 내역 조회에 실패했습니다.";
+    
+    // vendor_id 컬럼이 없는 경우 마이그레이션 안내
+    if (errorMessage.includes("no such column: vendor_id")) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "데이터베이스 스키마가 업데이트되지 않았습니다. /api/migrate-vendors를 실행해주세요." 
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { success: false, message: "거래 내역 조회에 실패했습니다." },
+      { success: false, message: errorMessage },
       { status: 500 }
     );
   }

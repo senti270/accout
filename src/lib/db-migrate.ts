@@ -52,16 +52,29 @@ export async function migrateVendors(): Promise<void> {
       `);
 
       // transactions 테이블에 vendor_id 컬럼 추가 (없을 경우)
+      // SQLite에서는 ALTER TABLE ADD COLUMN으로 FOREIGN KEY 제약 조건을 추가할 수 없음
       try {
-        await db.execute(
-          "ALTER TABLE transactions ADD COLUMN vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL"
+        // 먼저 컬럼이 존재하는지 확인
+        const tableInfo = await db.query<{ name: string }>(
+          "PRAGMA table_info(transactions)"
         );
-        await db.execute(
-          "CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id)"
-        );
+        const hasVendorId = tableInfo.some((col) => col.name === "vendor_id");
+
+        if (!hasVendorId) {
+          // 컬럼만 추가 (FOREIGN KEY 제약 조건 없이)
+          await db.execute(
+            "ALTER TABLE transactions ADD COLUMN vendor_id INTEGER"
+          );
+          await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id)"
+          );
+          console.log("✅ transactions.vendor_id 컬럼 추가 완료");
+        } else {
+          console.log("ℹ️ transactions.vendor_id 컬럼이 이미 존재합니다");
+        }
       } catch (error: any) {
         // 컬럼이 이미 존재하면 무시
-        if (!error?.message?.includes("duplicate column")) {
+        if (!error?.message?.includes("duplicate column") && !error?.message?.includes("already exists")) {
           console.warn("vendor_id 컬럼 추가 실패 (이미 존재할 수 있음):", error);
         }
       }
@@ -103,15 +116,30 @@ export async function migrateVendors(): Promise<void> {
 
       // transactions 테이블에 vendor_id 컬럼 추가 (없을 경우)
       try {
-        await db.execute(
-          "ALTER TABLE transactions ADD COLUMN vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL"
+        // PostgreSQL에서 컬럼 존재 여부 확인
+        const columnExists = await db.queryOne<{ exists: boolean }>(
+          `SELECT EXISTS (
+            SELECT 1 
+            FROM information_schema.columns 
+            WHERE table_name = 'transactions' 
+            AND column_name = 'vendor_id'
+          ) as exists`
         );
-        await db.execute(
-          "CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id)"
-        );
+
+        if (!columnExists?.exists) {
+          await db.execute(
+            "ALTER TABLE transactions ADD COLUMN vendor_id INTEGER"
+          );
+          await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id)"
+          );
+          console.log("✅ transactions.vendor_id 컬럼 추가 완료");
+        } else {
+          console.log("ℹ️ transactions.vendor_id 컬럼이 이미 존재합니다");
+        }
       } catch (error: any) {
         // 컬럼이 이미 존재하면 무시
-        if (!error?.message?.includes("already exists")) {
+        if (!error?.message?.includes("already exists") && !error?.message?.includes("duplicate column")) {
           console.warn("vendor_id 컬럼 추가 실패 (이미 존재할 수 있음):", error);
         }
       }
