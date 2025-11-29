@@ -229,6 +229,7 @@ async function initializeTurso(): Promise<void> {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       workspace_id INTEGER NOT NULL,
       project_id TEXT NOT NULL,
+      vendor_id INTEGER,
       category TEXT NOT NULL,
       deposit_amount REAL NOT NULL DEFAULT 0,
       withdrawal_amount REAL NOT NULL DEFAULT 0,
@@ -237,10 +238,12 @@ async function initializeTurso(): Promise<void> {
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL
     )`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_workspace_id ON transactions(workspace_id)`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_project_id ON transactions(project_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id)`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(transaction_date)`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category)`,
     `CREATE TRIGGER IF NOT EXISTS update_transactions_timestamp 
@@ -287,6 +290,29 @@ async function initializeTurso(): Promise<void> {
       FOR EACH ROW
     BEGIN
       UPDATE documents SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    END`,
+
+    // 7. Vendors (거래처) 테이블
+    `CREATE TABLE IF NOT EXISTS vendors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      workspace_id INTEGER NOT NULL,
+      business_number TEXT,
+      name TEXT NOT NULL,
+      contact_person TEXT,
+      contact_phone TEXT,
+      tax_email TEXT,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_vendors_workspace_id ON vendors(workspace_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_vendors_name ON vendors(name)`,
+    `CREATE INDEX IF NOT EXISTS idx_vendors_business_number ON vendors(business_number)`,
+    `CREATE TRIGGER IF NOT EXISTS update_vendors_timestamp 
+      AFTER UPDATE ON vendors
+      FOR EACH ROW
+    BEGIN
+      UPDATE vendors SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END`,
   ];
 
@@ -361,6 +387,7 @@ async function initializePostgreSQL(): Promise<void> {
       id SERIAL PRIMARY KEY,
       workspace_id INTEGER NOT NULL,
       project_id VARCHAR(50) NOT NULL,
+      vendor_id INTEGER,
       category VARCHAR(100) NOT NULL,
       deposit_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
       withdrawal_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
@@ -369,10 +396,12 @@ async function initializePostgreSQL(): Promise<void> {
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL
     )`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_workspace_id ON transactions(workspace_id)`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_project_id ON transactions(project_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id)`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(transaction_date)`,
     `CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category)`,
     `DROP TRIGGER IF EXISTS update_transactions_timestamp ON transactions`,
@@ -416,6 +445,28 @@ async function initializePostgreSQL(): Promise<void> {
     `DROP TRIGGER IF EXISTS update_documents_timestamp ON documents`,
     `CREATE TRIGGER update_documents_timestamp 
       BEFORE UPDATE ON documents
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column()`,
+
+    // 7. Vendors (거래처) 테이블
+    `CREATE TABLE IF NOT EXISTS vendors (
+      id SERIAL PRIMARY KEY,
+      workspace_id INTEGER NOT NULL,
+      business_number VARCHAR(20),
+      name VARCHAR(255) NOT NULL,
+      contact_person VARCHAR(100),
+      contact_phone VARCHAR(50),
+      tax_email VARCHAR(255),
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_vendors_workspace_id ON vendors(workspace_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_vendors_name ON vendors(name)`,
+    `CREATE INDEX IF NOT EXISTS idx_vendors_business_number ON vendors(business_number)`,
+    `DROP TRIGGER IF EXISTS update_vendors_timestamp ON vendors`,
+    `CREATE TRIGGER update_vendors_timestamp 
+      BEFORE UPDATE ON vendors
       FOR EACH ROW
       EXECUTE FUNCTION update_updated_at_column()`,
   ];

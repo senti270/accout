@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     id SERIAL PRIMARY KEY,
     workspace_id INTEGER NOT NULL,
     project_id VARCHAR(50) NOT NULL,
+    vendor_id INTEGER,
     category VARCHAR(100) NOT NULL,
     deposit_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
     withdrawal_amount DECIMAL(15, 2) NOT NULL DEFAULT 0,
@@ -86,12 +87,14 @@ CREATE TABLE IF NOT EXISTS transactions (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE SET NULL
 );
 
 -- 인덱스
 CREATE INDEX IF NOT EXISTS idx_transactions_workspace_id ON transactions(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_project_id ON transactions(project_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_transaction_date ON transactions(transaction_date);
 CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);
 
@@ -147,6 +150,37 @@ CREATE TRIGGER update_documents_timestamp
     BEFORE UPDATE ON documents
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+
+-- 7. Vendors (거래처) 테이블
+CREATE TABLE IF NOT EXISTS vendors (
+    id SERIAL PRIMARY KEY,
+    workspace_id INTEGER NOT NULL,
+    business_number VARCHAR(20),
+    name VARCHAR(255) NOT NULL,
+    contact_person VARCHAR(100),
+    contact_phone VARCHAR(50),
+    tax_email VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+);
+
+-- 인덱스
+CREATE INDEX IF NOT EXISTS idx_vendors_workspace_id ON vendors(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_vendors_name ON vendors(name);
+CREATE INDEX IF NOT EXISTS idx_vendors_business_number ON vendors(business_number);
+
+-- 트리거: updated_at 자동 업데이트
+CREATE TRIGGER update_vendors_timestamp 
+    BEFORE UPDATE ON vendors
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Transactions 테이블에 vendor_id 컬럼 추가
+-- ALTER TABLE transactions ADD COLUMN vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL;
+-- CREATE INDEX IF NOT EXISTS idx_transactions_vendor_id ON transactions(vendor_id);
 
 -- ============================================
 -- 스키마 생성 완료
