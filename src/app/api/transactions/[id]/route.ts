@@ -28,6 +28,7 @@ export async function GET(
       id: number;
       workspace_id: number;
       project_id: string;
+      vendor_id: number | null;
       category: string;
       deposit_amount: number;
       withdrawal_amount: number;
@@ -84,6 +85,7 @@ export async function PUT(
     const transactionId = parseInt(id);
     const {
       project_id,
+      vendor_id,
       category,
       deposit_amount,
       withdrawal_amount,
@@ -138,6 +140,30 @@ export async function PUT(
       }
       updates.push(`project_id = $${paramIndex++}`);
       values.push(project_id.trim());
+    }
+
+    if (vendor_id !== undefined) {
+      if (vendor_id !== null) {
+        // 거래처 존재 확인
+        const existingTransaction = await db.queryOne<{ workspace_id: number }>(
+          "SELECT workspace_id FROM transactions WHERE id = $1",
+          [transactionId]
+        );
+        if (existingTransaction) {
+          const vendor = await db.queryOne<{ id: number }>(
+            "SELECT id FROM vendors WHERE id = $1 AND workspace_id = $2",
+            [vendor_id, existingTransaction.workspace_id]
+          );
+          if (!vendor) {
+            return NextResponse.json(
+              { success: false, message: "거래처를 찾을 수 없습니다." },
+              { status: 404 }
+            );
+          }
+        }
+      }
+      updates.push(`vendor_id = $${paramIndex++}`);
+      values.push(vendor_id || null);
     }
 
     if (category !== undefined) {
@@ -207,6 +233,7 @@ export async function PUT(
       id: number;
       workspace_id: number;
       project_id: string;
+      vendor_id: number | null;
       category: string;
       deposit_amount: number;
       withdrawal_amount: number;

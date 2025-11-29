@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
       id: number;
       workspace_id: number;
       project_id: string;
+      vendor_id: number | null;
       category: string;
       deposit_amount: number;
       withdrawal_amount: number;
@@ -133,6 +134,7 @@ export async function POST(request: NextRequest) {
     const {
       workspace_id,
       project_id,
+      vendor_id,
       category,
       deposit_amount = 0,
       withdrawal_amount = 0,
@@ -204,12 +206,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // vendor_id가 있으면 거래처 존재 확인
+    if (vendor_id) {
+      const vendor = await db.queryOne<{ id: number }>(
+        "SELECT id FROM vendors WHERE id = $1 AND workspace_id = $2",
+        [vendor_id, workspace_id]
+      );
+
+      if (!vendor) {
+        return NextResponse.json(
+          { success: false, message: "거래처를 찾을 수 없습니다." },
+          { status: 404 }
+        );
+      }
+    }
+
     // 생성
     const result = await db.execute(
-      "INSERT INTO transactions (workspace_id, project_id, category, deposit_amount, withdrawal_amount, transaction_date, memo) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+      "INSERT INTO transactions (workspace_id, project_id, vendor_id, category, deposit_amount, withdrawal_amount, transaction_date, memo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
       [
         workspace_id,
         project_id.trim(),
+        vendor_id || null,
         category.trim(),
         deposit_amount,
         withdrawal_amount,
@@ -230,6 +248,7 @@ export async function POST(request: NextRequest) {
       id: number;
       workspace_id: number;
       project_id: string;
+      vendor_id: number | null;
       category: string;
       deposit_amount: number;
       withdrawal_amount: number;

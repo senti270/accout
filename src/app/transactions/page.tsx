@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import Link from "next/link";
+import VendorAutocomplete from "@/components/VendorAutocomplete";
+import VendorManagementModal from "@/components/VendorManagementModal";
 
 interface Transaction {
   id: number;
   workspace_id: number;
   project_id: string;
+  vendor_id: number | null;
   category: string;
   deposit_amount: number;
   withdrawal_amount: number;
@@ -22,11 +25,19 @@ interface Project {
   name: string;
 }
 
+interface Vendor {
+  id: number;
+  name: string;
+  business_number: string | null;
+}
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showVendorModal, setShowVendorModal] = useState(false);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<number | null>(
     null
   );
@@ -39,6 +50,7 @@ export default function TransactionsPage() {
 
   const [formData, setFormData] = useState({
     project_id: "",
+    vendor_id: null as number | null,
     category: "",
     deposit_amount: "",
     withdrawal_amount: "",
@@ -54,6 +66,7 @@ export default function TransactionsPage() {
       const workspaceId = parseInt(saved);
       setSelectedWorkspaceId(workspaceId);
       fetchProjects(workspaceId);
+      fetchVendors(workspaceId);
       fetchTransactions(workspaceId);
     }
   }, []);
@@ -75,6 +88,18 @@ export default function TransactionsPage() {
       }
     } catch (error) {
       console.error("프로젝트 조회 오류:", error);
+    }
+  };
+
+  const fetchVendors = async (workspaceId: number) => {
+    try {
+      const response = await fetch(`/api/vendors?workspace_id=${workspaceId}`);
+      const data = await response.json();
+      if (data.success) {
+        setVendors(data.data);
+      }
+    } catch (error) {
+      console.error("거래처 조회 오류:", error);
     }
   };
 
@@ -127,6 +152,7 @@ export default function TransactionsPage() {
         body: JSON.stringify({
           workspace_id: selectedWorkspaceId,
           project_id: formData.project_id,
+          vendor_id: formData.vendor_id || null,
           category: formData.category,
           deposit_amount: parseFloat(formData.deposit_amount) || 0,
           withdrawal_amount: parseFloat(formData.withdrawal_amount) || 0,
@@ -140,6 +166,7 @@ export default function TransactionsPage() {
       if (data.success) {
         setFormData({
           project_id: "",
+          vendor_id: null,
           category: "",
           deposit_amount: "",
           withdrawal_amount: "",
@@ -308,6 +335,21 @@ export default function TransactionsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+              {selectedWorkspaceId && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    거래처
+                  </label>
+                  <VendorAutocomplete
+                    workspaceId={selectedWorkspaceId}
+                    value={formData.vendor_id}
+                    onChange={(vendorId, vendorName) => {
+                      setFormData({ ...formData, vendor_id: vendorId });
+                    }}
+                    onManageClick={() => setShowVendorModal(true)}
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   입금액
@@ -400,6 +442,9 @@ export default function TransactionsPage() {
                     프로젝트
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    거래처
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     카테고리
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -420,7 +465,7 @@ export default function TransactionsPage() {
                 {transactions.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       className="px-6 py-4 text-center text-gray-500"
                     >
                       거래 내역이 없습니다.
@@ -431,6 +476,9 @@ export default function TransactionsPage() {
                     const project = projects.find(
                       (p) => p.id === transaction.project_id
                     );
+                    const vendor = vendors.find(
+                      (v) => v.id === transaction.vendor_id
+                    );
                     return (
                       <tr key={transaction.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -440,6 +488,9 @@ export default function TransactionsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {project?.name || transaction.project_id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {vendor?.name || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {transaction.category}
@@ -480,6 +531,17 @@ export default function TransactionsPage() {
           </div>
         )}
       </div>
+
+      {selectedWorkspaceId && (
+        <VendorManagementModal
+          workspaceId={selectedWorkspaceId}
+          isOpen={showVendorModal}
+          onClose={() => setShowVendorModal(false)}
+          onVendorAdded={() => {
+            fetchVendors(selectedWorkspaceId);
+          }}
+        />
+      )}
     </Layout>
   );
 }
