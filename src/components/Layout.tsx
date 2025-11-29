@@ -20,10 +20,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     if (auth === "true") {
       setAuthenticated(true);
     } else {
-      router.push("/login");
+      // 로그인 페이지가 아닐 때만 리다이렉트
+      if (pathname !== "/login") {
+        router.push("/login");
+      }
     }
     setLoading(false);
-  }, [router]);
+  }, [router, pathname]);
 
   useEffect(() => {
     // 워크스페이스 ID를 localStorage에 저장
@@ -48,8 +51,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!authenticated || pathname === "/login") {
+  // 로그인 페이지는 Layout 없이 표시
+  if (pathname === "/login") {
     return <>{children}</>;
+  }
+
+  // 인증되지 않은 경우 로그인 페이지로 리다이렉트
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">인증 확인 중...</div>
+      </div>
+    );
   }
 
   return (
