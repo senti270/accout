@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import Link from "next/link";
+import DashboardComments from "@/components/DashboardComments";
+import DashboardTodos from "@/components/DashboardTodos";
+import DashboardBookmarks from "@/components/DashboardBookmarks";
 
 interface DashboardStats {
   totalProjects: number;
@@ -371,6 +374,18 @@ export default function Dashboard() {
             </p>
           </Link>
         </div>
+
+        {/* 대시보드 추가 기능 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 코멘트 */}
+          <DashboardComments workspaceId={selectedWorkspaceId} />
+          
+          {/* URL 바로가기 */}
+          <DashboardBookmarks workspaceId={selectedWorkspaceId} />
+        </div>
+
+        {/* Todolist */}
+        <DashboardTodos workspaceId={selectedWorkspaceId} />
       </div>
     </Layout>
   );

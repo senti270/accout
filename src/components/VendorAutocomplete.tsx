@@ -31,6 +31,7 @@ export default function VendorAutocomplete({
   const [searchTerm, setSearchTerm] = useState("");
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [recentVendors, setRecentVendors] = useState<Vendor[]>([]);
+  const [recentVendorIds, setRecentVendorIds] = useState<number[]>([]);
   const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
@@ -38,11 +39,8 @@ export default function VendorAutocomplete({
 
   useEffect(() => {
     if (workspaceId) {
-      const loadData = async () => {
-        await fetchVendors();
-        fetchRecentVendors();
-      };
-      loadData();
+      fetchVendors();
+      fetchRecentVendors();
     }
   }, [workspaceId]);
 
@@ -74,10 +72,9 @@ export default function VendorAutocomplete({
     }
   }, [searchTerm, vendors]);
 
-  // vendors가 로드되면 recentVendors를 다시 매칭하여 전체 정보 업데이트
+  // vendors가 로드되면 recentVendorIds와 매칭하여 recentVendors 업데이트
   useEffect(() => {
-    if (vendors.length > 0 && recentVendors.length > 0) {
-      const recentVendorIds = recentVendors.map((v) => v.id);
+    if (vendors.length > 0 && recentVendorIds.length > 0) {
       const fullRecentVendors = vendors.filter((v) =>
         recentVendorIds.includes(v.id)
       );
@@ -89,7 +86,7 @@ export default function VendorAutocomplete({
         setRecentVendors(sortedRecentVendors);
       }
     }
-  }, [vendors]);
+  }, [vendors, recentVendorIds]);
   
 
   useEffect(() => {
@@ -127,16 +124,15 @@ export default function VendorAutocomplete({
       );
       const data = await response.json();
       if (data.success && data.data.length > 0) {
-        // 최근 사용 거래처 ID 목록
-        const recentVendorIds = data.data.map((v: { id: number }) => v.id);
+        // 최근 사용 거래처 ID 목록 저장
+        const ids = data.data.map((v: { id: number }) => v.id);
+        setRecentVendorIds(ids);
         
-        // vendors가 로드되어 있으면 전체 정보 매칭, 없으면 이름만 저장
+        // vendors가 이미 로드되어 있으면 매칭
         if (vendors.length > 0) {
-          const fullRecentVendors = vendors.filter((v) =>
-            recentVendorIds.includes(v.id)
-          );
+          const fullRecentVendors = vendors.filter((v) => ids.includes(v.id));
           // 최근 사용 순서 유지
-          const sortedRecentVendors = recentVendorIds
+          const sortedRecentVendors = ids
             .map((id: number) => fullRecentVendors.find((v) => v.id === id))
             .filter((v: Vendor | undefined) => v !== undefined) as Vendor[];
           setRecentVendors(sortedRecentVendors);
@@ -154,10 +150,12 @@ export default function VendorAutocomplete({
           );
         }
       } else {
+        setRecentVendorIds([]);
         setRecentVendors([]);
       }
     } catch (error) {
       console.error("최근 사용 거래처 조회 오류:", error);
+      setRecentVendorIds([]);
       setRecentVendors([]);
     }
   };
