@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspace_id");
+    const projectId = searchParams.get("project_id");
     const documentType = searchParams.get("document_type");
     const title = searchParams.get("title");
 
@@ -40,11 +41,17 @@ export async function GET(request: NextRequest) {
       params.push(`%${title}%`);
     }
 
+    if (projectId) {
+      sql += ` AND project_id = $${paramIndex++}`;
+      params.push(projectId);
+    }
+
     sql += " ORDER BY created_at DESC";
 
     const documents = await db.query<{
       id: number;
       workspace_id: number;
+      project_id: string | null;
       document_type: string;
       title: string;
       file_url: string;
@@ -72,6 +79,7 @@ export async function POST(request: NextRequest) {
   try {
     const {
       workspace_id,
+      project_id,
       document_type,
       title,
       file_url,
@@ -126,11 +134,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // project_id가 있으면 프로젝트 존재 확인
+    if (project_id) {
+      const project = await db.queryOne<{ id: string }>(
+        "SELECT id FROM projects WHERE id = $1 AND workspace_id = $2",
+        [project_id, workspace_id]
+      );
+
+      if (!project) {
+        return NextResponse.json(
+          { success: false, message: "프로젝트를 찾을 수 없습니다." },
+          { status: 404 }
+        );
+      }
+    }
+
     // 생성
     const result = await db.execute(
-      "INSERT INTO documents (workspace_id, document_type, title, file_url, file_name, file_size, mime_type, expiry_date, memo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+      "INSERT INTO documents (workspace_id, project_id, document_type, title, file_url, file_name, file_size, mime_type, expiry_date, memo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
       [
         workspace_id,
+        project_id || null,
         document_type.trim(),
         title.trim(),
         file_url.trim(),
@@ -153,6 +177,7 @@ export async function POST(request: NextRequest) {
     const document = await db.queryOne<{
       id: number;
       workspace_id: number;
+      project_id: string | null;
       document_type: string;
       title: string;
       file_url: string;

@@ -43,6 +43,15 @@ export async function initializeDatabase(): Promise<void> {
       // 마이그레이션 실패해도 계속 진행
     }
 
+    // 프로젝트 서류 마이그레이션 (기존 DB 호환)
+    try {
+      const { migrateProjectDocuments } = await import("./db-migrate-projects");
+      await migrateProjectDocuments();
+    } catch (error) {
+      console.warn("⚠️ 프로젝트 서류 마이그레이션 경고:", error);
+      // 마이그레이션 실패해도 계속 진행
+    }
+
     console.log("✅ 데이터베이스 스키마 초기화 완료");
   } catch (error) {
     console.error("❌ 데이터베이스 초기화 실패:", error);

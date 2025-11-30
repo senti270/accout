@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 
 interface Document {
   id: number;
   workspace_id: number;
+  project_id: string | null;
   document_type: string;
   title: string;
   file_url: string;
@@ -37,7 +38,12 @@ export default function DocumentsPage() {
     memo: "",
   });
 
+  const [pendingFile, setPendingFile] = useState<{
+    base64: string;
+    file: File;
+  } | null>(null);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedWorkspaceId");
@@ -102,12 +108,27 @@ export default function DocumentsPage() {
       return;
     }
 
-    if (!formData.document_type.trim() || !formData.title.trim() || !formData.file_url.trim()) {
-      setError("서류 종류, 제목, 파일 URL을 입력해주세요.");
+    if (!formData.document_type.trim() || !formData.title.trim()) {
+      setError("서류 종류, 제목을 입력해주세요.");
+      return;
+    }
+
+    if (!pendingFile && !formData.file_url.trim()) {
+      setError("파일을 첨부하거나 파일 URL을 입력해주세요.");
       return;
     }
 
     try {
+      // 파일이 있으면 base64를 사용, 없으면 URL 사용
+      const fileUrl = pendingFile
+        ? pendingFile.base64
+        : formData.file_url.trim();
+      const fileName = pendingFile
+        ? pendingFile.file.name
+        : formData.file_name || null;
+      const fileSize = pendingFile ? pendingFile.file.size : null;
+      const mimeType = pendingFile ? pendingFile.file.type : null;
+
       const response = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -115,8 +136,10 @@ export default function DocumentsPage() {
           workspace_id: selectedWorkspaceId,
           document_type: formData.document_type.trim(),
           title: formData.title.trim(),
-          file_url: formData.file_url.trim(),
-          file_name: formData.file_name || null,
+          file_url: fileUrl,
+          file_name: fileName,
+          file_size: fileSize,
+          mime_type: mimeType,
           expiry_date: formData.expiry_date || null,
           memo: formData.memo || null,
         }),
@@ -133,6 +156,10 @@ export default function DocumentsPage() {
           expiry_date: "",
           memo: "",
         });
+        setPendingFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
         setShowAddForm(false);
         fetchDocuments(selectedWorkspaceId);
       } else {
@@ -140,6 +167,61 @@ export default function DocumentsPage() {
       }
     } catch (error) {
       setError("서류 추가 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          await handleImageFile(file);
+        }
+      }
+    }
+  };
+
+  const handleImageFile = async (file: File) => {
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64 = e.target?.result as string;
+          setPendingFile({ base64, file });
+          setFormData((prev) => ({
+            ...prev,
+            file_name: file.name,
+          }));
+          resolve();
+        } catch (error) {
+          console.error("이미지 처리 오류:", error);
+          setError("이미지 처리 중 오류가 발생했습니다.");
+          reject();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleImageFile(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setPendingFile(null);
+    setFormData((prev) => ({
+      ...prev,
+      file_url: "",
+      file_name: "",
+    }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -236,7 +318,11 @@ export default function DocumentsPage() {
         </div>
 
         {showAddForm && (
-          <form onSubmit={handleAdd} className="mb-6 p-4 bg-gray-50 rounded-md">
+          <form
+            onSubmit={handleAdd}
+            className="mb-6 p-4 bg-gray-50 rounded-md"
+            onPaste={handlePaste}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -275,18 +361,63 @@ export default function DocumentsPage() {
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  파일 URL *
+                  파일 첨부 * (또는 파일 URL 입력)
                 </label>
-                <input
-                  type="url"
-                  value={formData.file_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, file_url: e.target.value })
-                  }
-                  required
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleFileSelect}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    {pendingFile && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile}
+                        className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                      >
+                        제거
+                      </button>
+                    )}
+                  </div>
+                  {!pendingFile && (
+                    <input
+                      type="url"
+                      value={formData.file_url}
+                      onChange={(e) =>
+                        setFormData({ ...formData, file_url: e.target.value })
+                      }
+                      placeholder="또는 파일 URL 입력 (https://... 또는 base64 data URL)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  )}
+                  {pendingFile && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {pendingFile.file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(pendingFile.file.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                        {pendingFile.file.type.startsWith("image/") && (
+                          <img
+                            src={pendingFile.base64}
+                            alt="미리보기"
+                            className="w-20 h-20 object-cover rounded-md"
+                          />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        💡 이미지를 복사하여 붙여넣을 수도 있습니다 (Ctrl+V / Cmd+V)
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
