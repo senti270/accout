@@ -65,10 +65,28 @@ export async function GET(request: NextRequest) {
     }>(sql, params);
 
     return NextResponse.json({ success: true, data: documents });
-  } catch (error) {
+  } catch (error: any) {
     console.error("서류 조회 오류:", error);
+    const errorMessage = error?.message || "서류 조회에 실패했습니다.";
+    
+    // 컬럼이 없는 경우 마이그레이션 안내
+    if (errorMessage.includes("no such column") && errorMessage.includes("project_id")) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "데이터베이스 스키마가 업데이트되지 않았습니다. 브라우저에서 /api/migrate-project-documents 페이지를 열어주세요."
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { success: false, message: "서류 조회에 실패했습니다." },
+      { 
+        success: false, 
+        message: errorMessage.includes("no such table") || errorMessage.includes("does not exist")
+          ? "데이터베이스 테이블이 없습니다. /api/init-db를 실행해주세요."
+          : errorMessage
+      },
       { status: 500 }
     );
   }
@@ -197,10 +215,28 @@ export async function POST(request: NextRequest) {
       { success: true, message: "서류가 생성되었습니다.", data: document },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("서류 생성 오류:", error);
+    const errorMessage = error?.message || "서류 생성에 실패했습니다.";
+    
+    // 컬럼이 없는 경우 마이그레이션 안내
+    if (errorMessage.includes("no such column") && errorMessage.includes("project_id")) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "데이터베이스 스키마가 업데이트되지 않았습니다. 브라우저에서 /api/migrate-project-documents 페이지를 열어주세요."
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { success: false, message: "서류 생성에 실패했습니다." },
+      { 
+        success: false, 
+        message: errorMessage.includes("no such table") || errorMessage.includes("does not exist")
+          ? "데이터베이스 테이블이 없습니다. /api/init-db를 실행해주세요."
+          : errorMessage
+      },
       { status: 500 }
     );
   }
