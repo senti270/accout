@@ -70,7 +70,22 @@ export async function POST(
   try {
     const { id } = await params;
     const transactionId = parseInt(id);
-    const { image_url, file_name, file_size, mime_type } = await request.json();
+    
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error("JSON 파싱 오류:", jsonError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "요청 데이터 형식이 올바르지 않습니다. 파일 크기가 너무 클 수 있습니다." 
+        },
+        { status: 400 }
+      );
+    }
+    
+    const { image_url, file_name, file_size, mime_type } = body;
 
     if (isNaN(transactionId)) {
       return NextResponse.json(
