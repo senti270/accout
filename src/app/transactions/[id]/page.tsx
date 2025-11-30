@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import Link from "next/link";
 import VendorAutocomplete from "@/components/VendorAutocomplete";
 import VendorManagementModal from "@/components/VendorManagementModal";
+import ImageModal from "@/components/ImageModal";
 
 interface Transaction {
   id: number;
@@ -77,6 +78,10 @@ export default function TransactionDetailPage() {
     file: File;
   } | null>(null);
   const receiptFileInputRef = useRef<HTMLInputElement>(null);
+  const [viewingImage, setViewingImage] = useState<{
+    url: string;
+    fileName: string | null;
+  } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedWorkspaceId");
@@ -747,14 +752,18 @@ export default function TransactionDetailPage() {
                       {new Date(receipt.created_at).toLocaleDateString("ko-KR")}
                     </p>
                     <div className="flex justify-between items-center mt-3">
-                      <a
-                        href={receipt.image_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setViewingImage({
+                            url: receipt.image_url,
+                            fileName: receipt.file_name,
+                          });
+                        }}
                         className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
                       >
                         크게 보기
-                      </a>
+                      </button>
                       {!editing && (
                         <button
                           onClick={() => handleDeleteReceipt(receipt.id)}
@@ -785,6 +794,15 @@ export default function TransactionDetailPage() {
             fetchVendors(selectedWorkspaceId);
             setVendorAutocompleteKey((prev) => prev + 1);
           }}
+        />
+      )}
+
+      {viewingImage && (
+        <ImageModal
+          isOpen={!!viewingImage}
+          onClose={() => setViewingImage(null)}
+          imageUrl={viewingImage.url}
+          fileName={viewingImage.fileName}
         />
       )}
     </Layout>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Layout from "@/components/Layout";
+import ImageModal from "@/components/ImageModal";
 
 interface Document {
   id: number;
@@ -43,6 +44,10 @@ export default function DocumentsPage() {
   } | null>(null);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [viewingImage, setViewingImage] = useState<{
+    url: string;
+    fileName: string | null;
+  } | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedWorkspaceId");
@@ -248,7 +253,20 @@ export default function DocumentsPage() {
   const handleFileDownload = (doc: Document) => {
     if (!doc.file_url) return;
     
-    // base64 데이터인 경우
+    // 이미지인 경우 모달로 표시
+    const isImage = doc.file_url.startsWith("data:image/") || 
+                    doc.mime_type?.startsWith("image/") ||
+                    (doc.file_url.startsWith("data:") && doc.file_url.includes("image/"));
+    
+    if (isImage) {
+      setViewingImage({
+        url: doc.file_url,
+        fileName: doc.file_name,
+      });
+      return;
+    }
+    
+    // base64 데이터인 경우 (비이미지)
     if (doc.file_url.startsWith("data:")) {
       try {
         // base64 데이터에서 MIME 타입과 데이터 추출
@@ -563,6 +581,15 @@ export default function DocumentsPage() {
           </div>
         )}
       </div>
+
+      {viewingImage && (
+        <ImageModal
+          isOpen={!!viewingImage}
+          onClose={() => setViewingImage(null)}
+          imageUrl={viewingImage.url}
+          fileName={viewingImage.fileName}
+        />
+      )}
     </Layout>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, Fragment } from "react";
 import Layout from "@/components/Layout";
+import ImageModal from "@/components/ImageModal";
 
 interface Project {
   id: string;
@@ -58,6 +59,10 @@ export default function ProjectsPage() {
     file: File;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [viewingImage, setViewingImage] = useState<{
+    url: string;
+    fileName: string | null;
+  } | null>(null);
 
   interface Document {
     id: number;
@@ -912,21 +917,62 @@ export default function ProjectsPage() {
                                     {doc.file_url &&
                                       (doc.mime_type?.startsWith("image/") ||
                                         doc.file_url.startsWith("data:image/")) && (
-                                        <img
-                                          src={doc.file_url}
-                                          alt={doc.title}
-                                          className="w-full h-32 object-cover rounded-md mb-2"
-                                        />
+                                        <div>
+                                          <img
+                                            src={doc.file_url}
+                                            alt={doc.title}
+                                            className="w-full h-32 object-cover rounded-md mb-2 cursor-pointer hover:opacity-80"
+                                            onClick={() => {
+                                              setViewingImage({
+                                                url: doc.file_url,
+                                                fileName: doc.file_name,
+                                              });
+                                            }}
+                                          />
+                                          <button
+                                            onClick={() => {
+                                              setViewingImage({
+                                                url: doc.file_url,
+                                                fileName: doc.file_name,
+                                              });
+                                            }}
+                                            className="text-indigo-600 hover:text-indigo-900 text-sm"
+                                          >
+                                            크게 보기
+                                          </button>
+                                        </div>
                                       )}
                                     {doc.file_url && !doc.mime_type?.startsWith("image/") && (
-                                      <a
-                                        href={doc.file_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                      <button
+                                        onClick={() => {
+                                          // 비이미지 파일은 다운로드
+                                          if (doc.file_url.startsWith("data:")) {
+                                            const base64Data = doc.file_url.split(",")[1];
+                                            const mimeType = doc.file_url.split(",")[0].split(":")[1].split(";")[0];
+                                            const byteCharacters = atob(base64Data);
+                                            const byteNumbers = new Array(byteCharacters.length);
+                                            for (let i = 0; i < byteCharacters.length; i++) {
+                                              byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                            }
+                                            const byteArray = new Uint8Array(byteNumbers);
+                                            const blob = new Blob([byteArray], { type: mimeType });
+                                            const url = window.URL.createObjectURL(blob);
+                                            const link = document.createElement("a");
+                                            link.href = url;
+                                            link.download = doc.file_name || doc.title || "파일";
+                                            link.style.display = "none";
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            window.URL.revokeObjectURL(url);
+                                          } else {
+                                            window.open(doc.file_url, "_blank");
+                                          }
+                                        }}
                                         className="text-indigo-600 hover:text-indigo-900 text-sm"
                                       >
                                         {doc.file_name || "파일 보기"}
-                                      </a>
+                                      </button>
                                     )}
                                     {doc.expiry_date && (
                                       <p className="text-xs text-gray-500 mt-1">
@@ -954,6 +1000,15 @@ export default function ProjectsPage() {
           </div>
         )}
       </div>
+
+      {viewingImage && (
+        <ImageModal
+          isOpen={!!viewingImage}
+          onClose={() => setViewingImage(null)}
+          imageUrl={viewingImage.url}
+          fileName={viewingImage.fileName}
+        />
+      )}
     </Layout>
   );
 }
