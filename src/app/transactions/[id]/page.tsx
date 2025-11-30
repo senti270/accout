@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import Link from "next/link";
@@ -72,10 +72,11 @@ export default function TransactionDetailPage() {
     memo: "",
   });
 
-  const [receiptFormData, setReceiptFormData] = useState({
-    image_url: "",
-    file_name: "",
-  });
+  const [pendingReceiptFile, setPendingReceiptFile] = useState<{
+    base64: string;
+    file: File;
+  } | null>(null);
+  const receiptFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedWorkspaceId");
@@ -206,13 +207,61 @@ export default function TransactionDetailPage() {
     }
   };
 
+  const handleReceiptPaste = async (e: React.ClipboardEvent<HTMLElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          await handleReceiptImageFile(file);
+        }
+      }
+    }
+  };
+
+  const handleReceiptImageFile = async (file: File) => {
+    return new Promise<void>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const base64 = e.target?.result as string;
+          setPendingReceiptFile({ base64, file });
+          resolve();
+        } catch (error) {
+          console.error("이미지 처리 오류:", error);
+          setError("이미지 처리 중 오류가 발생했습니다.");
+          reject();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleReceiptFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await handleReceiptImageFile(file);
+    }
+  };
+
+  const handleRemoveReceiptFile = () => {
+    setPendingReceiptFile(null);
+    if (receiptFileInputRef.current) {
+      receiptFileInputRef.current.value = "";
+    }
+  };
+
   const handleAddReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!receiptFormData.image_url.trim()) {
-      setError("이미지 URL을 입력해주세요.");
+    if (!pendingReceiptFile) {
+      setError("파일을 첨부하거나 이미지를 붙여넣어주세요.");
       return;
     }
 
@@ -221,8 +270,10 @@ export default function TransactionDetailPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          image_url: receiptFormData.image_url.trim(),
-          file_name: receiptFormData.file_name || null,
+          image_url: pendingReceiptFile.base64,
+          file_name: pendingReceiptFile.file.name,
+          file_size: pendingReceiptFile.file.size,
+          mime_type: pendingReceiptFile.file.type,
         }),
       });
 
@@ -230,7 +281,10 @@ export default function TransactionDetailPage() {
 
       if (data.success) {
         setSuccess("증빙서류가 추가되었습니다.");
-        setReceiptFormData({ image_url: "", file_name: "" });
+        setPendingReceiptFile(null);
+        if (receiptFileInputRef.current) {
+          receiptFileInputRef.current.value = "";
+        }
         setShowAddReceipt(false);
         fetchTransaction();
       } else {
@@ -565,43 +619,49 @@ export default function TransactionDetailPage() {
             <form
               onSubmit={handleAddReceipt}
               className="mb-6 p-4 bg-gray-50 rounded-md"
+              onPaste={handleReceiptPaste}
             >
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    이미지 URL *
+                    파일 첨부 또는 이미지 붙여넣기 *
                   </label>
                   <input
-                    type="url"
-                    value={receiptFormData.image_url}
-                    onChange={(e) =>
-                      setReceiptFormData({
-                        ...receiptFormData,
-                        image_url: e.target.value,
-                      })
-                    }
-                    required
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleReceiptFileSelect}
+                    ref={receiptFileInputRef}
+                    className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white focus:outline-none"
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    이미지를 직접 붙여넣거나 파일을 선택하세요.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    파일명
-                  </label>
-                  <input
-                    type="text"
-                    value={receiptFormData.file_name}
-                    onChange={(e) =>
-                      setReceiptFormData({
-                        ...receiptFormData,
-                        file_name: e.target.value,
-                      })
-                    }
-                    placeholder="선택사항"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
+
+                {pendingReceiptFile && (
+                  <div className="p-3 border border-gray-300 rounded-md bg-white flex items-center justify-between">
+                    <div className="flex items-center">
+                      {pendingReceiptFile.file.type.startsWith("image/") ? (
+                        <img
+                          src={pendingReceiptFile.base64}
+                          alt="미리보기"
+                          className="w-16 h-16 object-cover rounded-md mr-3"
+                        />
+                      ) : (
+                        <span className="text-indigo-600 mr-3">📄</span>
+                      )}
+                      <span>{pendingReceiptFile.file.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveReceiptFile}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
@@ -613,36 +673,56 @@ export default function TransactionDetailPage() {
           )}
 
           {transaction.receipts && transaction.receipts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {transaction.receipts.map((receipt) => (
                 <div
                   key={receipt.id}
-                  className="border border-gray-200 rounded-md p-4 relative"
+                  className="relative bg-gray-50 rounded-lg shadow overflow-hidden"
                 >
-                  <img
-                    src={receipt.image_url}
-                    alt={receipt.file_name || "증빙서류"}
-                    className="w-full h-48 object-cover rounded-md mb-2"
-                  />
-                  {receipt.file_name && (
-                    <p className="text-sm text-gray-600 mb-2">
-                      {receipt.file_name}
+                  {receipt.mime_type?.startsWith("image/") ? (
+                    <img
+                      src={receipt.image_url}
+                      alt={receipt.file_name || "증빙서류"}
+                      className="w-full h-48 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-48 flex items-center justify-center bg-gray-200 text-gray-600 text-4xl">
+                      📄
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {receipt.file_name || "첨부 파일"}
                     </p>
-                  )}
-                  {!editing && (
-                    <button
-                      onClick={() => handleDeleteReceipt(receipt.id)}
-                      className="text-red-600 hover:text-red-900 text-sm"
-                    >
-                      삭제
-                    </button>
-                  )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      추가일:{" "}
+                      {new Date(receipt.created_at).toLocaleDateString("ko-KR")}
+                    </p>
+                    <div className="flex justify-between items-center mt-3">
+                      <a
+                        href={receipt.image_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                      >
+                        크게 보기
+                      </a>
+                      {!editing && (
+                        <button
+                          onClick={() => handleDeleteReceipt(receipt.id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">
-              증빙서류가 없습니다.
+              첨부된 증빙서류가 없습니다.
             </p>
           )}
         </div>
