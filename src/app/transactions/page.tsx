@@ -15,6 +15,7 @@ interface Transaction {
   deposit_amount: number;
   withdrawal_amount: number;
   transaction_date: string;
+  description: string | null;
   memo: string | null;
   created_at: string;
   updated_at: string;
@@ -45,7 +46,7 @@ export default function TransactionsPage() {
   );
   const [filters, setFilters] = useState({
     project_id: "",
-    category: "",
+    description: "",
     start_date: "",
     end_date: "",
   });
@@ -57,6 +58,7 @@ export default function TransactionsPage() {
     deposit_amount: "",
     withdrawal_amount: "",
     transaction_date: new Date().toISOString().split("T")[0],
+    description: "",
     memo: "",
   });
 
@@ -148,7 +150,7 @@ export default function TransactionsPage() {
       const params = new URLSearchParams({
         workspace_id: workspaceId.toString(),
         ...(filters.project_id && { project_id: filters.project_id }),
-        ...(filters.category && { category: filters.category }),
+        ...(filters.description && { description: filters.description }),
         ...(filters.start_date && { start_date: filters.start_date }),
         ...(filters.end_date && { end_date: filters.end_date }),
       });
@@ -196,6 +198,7 @@ export default function TransactionsPage() {
           deposit_amount: parseFloat(formData.deposit_amount) || 0,
           withdrawal_amount: parseFloat(formData.withdrawal_amount) || 0,
           transaction_date: formData.transaction_date,
+          description: formData.description || null,
           memo: formData.memo || null,
         }),
       });
@@ -210,6 +213,7 @@ export default function TransactionsPage() {
           deposit_amount: "",
           withdrawal_amount: "",
           transaction_date: new Date().toISOString().split("T")[0],
+          description: "",
           memo: "",
         });
         setShowAddForm(false);
@@ -301,15 +305,15 @@ export default function TransactionsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              카테고리
+              내역
             </label>
             <input
               type="text"
-              value={filters.category}
+              value={filters.description}
               onChange={(e) =>
-                setFilters({ ...filters, category: e.target.value })
+                setFilters({ ...filters, description: e.target.value })
               }
-              placeholder="카테고리"
+              placeholder="내역 검색"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -466,6 +470,20 @@ export default function TransactionsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  내역
+                </label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder="내역"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   메모
                 </label>
                 <input
@@ -509,6 +527,9 @@ export default function TransactionsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     카테고리
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    내역
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     입금액
                   </th>
@@ -527,7 +548,7 @@ export default function TransactionsPage() {
                 {transactions.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-6 py-4 text-center text-gray-500"
                     >
                       거래 내역이 없습니다.
@@ -556,6 +577,9 @@ export default function TransactionsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {transaction.category}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {transaction.description || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600">
                           {transaction.deposit_amount > 0
@@ -590,6 +614,67 @@ export default function TransactionsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* 합계 */}
+        {!loading && transactions.length > 0 && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-md">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">조회 건수</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {transactions.length}건
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">입금 합계</p>
+                <p className="text-xl font-bold text-green-600">
+                  {transactions
+                    .reduce(
+                      (sum, t) => sum + (t.deposit_amount || 0),
+                      0
+                    )
+                    .toLocaleString()}
+                  원
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">출금 합계</p>
+                <p className="text-xl font-bold text-red-600">
+                  {transactions
+                    .reduce(
+                      (sum, t) => sum + (t.withdrawal_amount || 0),
+                      0
+                    )
+                    .toLocaleString()}
+                  원
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">순 금액</p>
+                <p
+                  className={`text-xl font-bold ${
+                    transactions.reduce(
+                      (sum, t) =>
+                        sum + (t.deposit_amount || 0) - (t.withdrawal_amount || 0),
+                      0
+                    ) >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {transactions
+                    .reduce(
+                      (sum, t) =>
+                        sum + (t.deposit_amount || 0) - (t.withdrawal_amount || 0),
+                      0
+                    )
+                    .toLocaleString()}
+                  원
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

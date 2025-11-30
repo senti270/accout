@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspace_id");
     const documentType = searchParams.get("document_type");
+    const title = searchParams.get("title");
 
     const db = getDatabase();
 
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest) {
     if (documentType) {
       sql += ` AND document_type = $${paramIndex++}`;
       params.push(documentType);
+    }
+
+    if (title) {
+      sql += ` AND title LIKE $${paramIndex++}`;
+      params.push(`%${title}%`);
     }
 
     sql += " ORDER BY created_at DESC";

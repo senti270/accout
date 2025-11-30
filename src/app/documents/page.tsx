@@ -26,6 +26,7 @@ export default function DocumentsPage() {
     null
   );
   const [filterType, setFilterType] = useState("");
+  const [searchTitle, setSearchTitle] = useState("");
 
   const [formData, setFormData] = useState({
     document_type: "",
@@ -69,7 +70,7 @@ export default function DocumentsPage() {
     if (selectedWorkspaceId) {
       fetchDocuments(selectedWorkspaceId);
     }
-  }, [selectedWorkspaceId, filterType]);
+  }, [selectedWorkspaceId, filterType, searchTitle]);
 
   const fetchDocuments = async (workspaceId: number) => {
     setLoading(true);
@@ -77,6 +78,7 @@ export default function DocumentsPage() {
       const params = new URLSearchParams({
         workspace_id: workspaceId.toString(),
         ...(filterType && { document_type: filterType }),
+        ...(searchTitle && { title: searchTitle }),
       });
 
       const response = await fetch(`/api/documents?${params}`);
@@ -201,22 +203,36 @@ export default function DocumentsPage() {
         )}
 
         {/* 필터 */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            서류 종류 필터
-          </label>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">전체</option>
-            {documentTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              서류 종류 필터
+            </label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">전체</option>
+              {documentTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              제목 검색
+            </label>
+            <input
+              type="text"
+              value={searchTitle}
+              onChange={(e) => setSearchTitle(e.target.value)}
+              placeholder="제목으로 검색"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
         </div>
 
         {showAddForm && (

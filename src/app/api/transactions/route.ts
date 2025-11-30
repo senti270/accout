@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const workspaceId = searchParams.get("workspace_id");
     const projectId = searchParams.get("project_id");
-    const category = searchParams.get("category");
+    const description = searchParams.get("description");
     const startDate = searchParams.get("start_date");
     const endDate = searchParams.get("end_date");
     const limit = searchParams.get("limit") || "100";
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
       params.push(projectId);
     }
 
-    if (category) {
-      sql += ` AND category = $${paramIndex++}`;
-      params.push(category);
+    if (description) {
+      sql += ` AND description LIKE $${paramIndex++}`;
+      params.push(`%${description}%`);
     }
 
     if (startDate) {
@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
       deposit_amount: number;
       withdrawal_amount: number;
       transaction_date: string;
+      description: string | null;
       memo: string | null;
       created_at: string;
       updated_at: string;
@@ -90,9 +91,9 @@ export async function GET(request: NextRequest) {
       countParams.push(projectId);
     }
 
-    if (category) {
-      countSql += ` AND category = $${countParamIndex++}`;
-      countParams.push(category);
+    if (description) {
+      countSql += ` AND description LIKE $${countParamIndex++}`;
+      countParams.push(`%${description}%`);
     }
 
     if (startDate) {
