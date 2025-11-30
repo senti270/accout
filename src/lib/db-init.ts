@@ -6,6 +6,7 @@
 import { getDatabase, getDatabaseType, getSQLiteDatabase } from "./db";
 import bcrypt from "bcrypt";
 import { migrateVendors } from "./db-migrate";
+import { migrateDashboardTables } from "./db-migrate-dashboard";
 
 /**
  * 데이터베이스 스키마 초기화
@@ -31,6 +32,14 @@ export async function initializeDatabase(): Promise<void> {
       await migrateVendors();
     } catch (error) {
       console.warn("⚠️ vendors 마이그레이션 경고:", error);
+      // 마이그레이션 실패해도 계속 진행
+    }
+
+    // 대시보드 테이블 마이그레이션 (기존 DB 호환)
+    try {
+      await migrateDashboardTables();
+    } catch (error) {
+      console.warn("⚠️ 대시보드 테이블 마이그레이션 경고:", error);
       // 마이그레이션 실패해도 계속 진행
     }
 
