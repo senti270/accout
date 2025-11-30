@@ -30,6 +30,12 @@ export async function GET(
       contact_person: string | null;
       contact_phone: string | null;
       tax_email: string | null;
+      bank_code: string | null;
+      bank_account: string | null;
+      business_certificate_file_url: string | null;
+      business_certificate_file_name: string | null;
+      business_certificate_file_size: number | null;
+      business_certificate_mime_type: string | null;
       created_at: string;
       updated_at: string;
     }>("SELECT * FROM vendors WHERE id = $1", [vendorId]);
@@ -73,6 +79,12 @@ export async function PUT(
       contact_person,
       contact_phone,
       tax_email,
+      bank_code,
+      bank_account,
+      business_certificate_file_url,
+      business_certificate_file_name,
+      business_certificate_file_size,
+      business_certificate_mime_type,
     } = await request.json();
 
     const db = getDatabase();
@@ -100,13 +112,19 @@ export async function PUT(
 
     // 수정
     const result = await db.execute(
-      "UPDATE vendors SET business_number = $1, name = $2, contact_person = $3, contact_phone = $4, tax_email = $5 WHERE id = $6",
+      "UPDATE vendors SET business_number = $1, name = $2, contact_person = $3, contact_phone = $4, tax_email = $5, bank_code = $6, bank_account = $7, business_certificate_file_url = $8, business_certificate_file_name = $9, business_certificate_file_size = $10, business_certificate_mime_type = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12",
       [
         business_number?.trim() || null,
         name.trim(),
         contact_person?.trim() || null,
         contact_phone?.trim() || null,
         tax_email?.trim() || null,
+        bank_code?.trim() || null,
+        bank_account?.trim() || null,
+        business_certificate_file_url || null,
+        business_certificate_file_name || null,
+        business_certificate_file_size || null,
+        business_certificate_mime_type || null,
         vendorId,
       ]
     );
@@ -127,6 +145,12 @@ export async function PUT(
       contact_person: string | null;
       contact_phone: string | null;
       tax_email: string | null;
+      bank_code: string | null;
+      bank_account: string | null;
+      business_certificate_file_url: string | null;
+      business_certificate_file_name: string | null;
+      business_certificate_file_size: number | null;
+      business_certificate_mime_type: string | null;
       created_at: string;
       updated_at: string;
     }>("SELECT * FROM vendors WHERE id = $1", [vendorId]);

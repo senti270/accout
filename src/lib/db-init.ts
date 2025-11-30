@@ -52,6 +52,24 @@ export async function initializeDatabase(): Promise<void> {
       // 마이그레이션 실패해도 계속 진행
     }
 
+    // 은행 코드 테이블 마이그레이션
+    try {
+      const { migrateBanks } = await import("./db-migrate-banks");
+      await migrateBanks();
+    } catch (error) {
+      console.warn("⚠️ 은행 코드 테이블 마이그레이션 경고:", error);
+      // 마이그레이션 실패해도 계속 진행
+    }
+
+    // 거래처 필드 마이그레이션 (은행 정보, 사업자등록증 파일)
+    try {
+      const { migrateVendorFields } = await import("./db-migrate-vendor-fields");
+      await migrateVendorFields();
+    } catch (error) {
+      console.warn("⚠️ 거래처 필드 마이그레이션 경고:", error);
+      // 마이그레이션 실패해도 계속 진행
+    }
+
     console.log("✅ 데이터베이스 스키마 초기화 완료");
   } catch (error) {
     console.error("❌ 데이터베이스 초기화 실패:", error);

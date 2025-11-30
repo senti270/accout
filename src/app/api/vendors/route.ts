@@ -36,6 +36,12 @@ export async function GET(request: NextRequest) {
           contact_person: string | null;
           contact_phone: string | null;
           tax_email: string | null;
+          bank_code: string | null;
+          bank_account: string | null;
+          business_certificate_file_url: string | null;
+          business_certificate_file_name: string | null;
+          business_certificate_file_size: number | null;
+          business_certificate_mime_type: string | null;
           created_at: string;
           updated_at: string;
         }>(
@@ -51,6 +57,12 @@ export async function GET(request: NextRequest) {
           contact_person: string | null;
           contact_phone: string | null;
           tax_email: string | null;
+          bank_code: string | null;
+          bank_account: string | null;
+          business_certificate_file_url: string | null;
+          business_certificate_file_name: string | null;
+          business_certificate_file_size: number | null;
+          business_certificate_mime_type: string | null;
           created_at: string;
           updated_at: string;
         }>("SELECT * FROM vendors WHERE workspace_id = $1 ORDER BY name", [id]);
@@ -65,6 +77,12 @@ export async function GET(request: NextRequest) {
         contact_person: string | null;
         contact_phone: string | null;
         tax_email: string | null;
+        bank_code: string | null;
+        bank_account: string | null;
+        business_certificate_file_url: string | null;
+        business_certificate_file_name: string | null;
+        business_certificate_file_size: number | null;
+        business_certificate_mime_type: string | null;
         created_at: string;
         updated_at: string;
       }>("SELECT * FROM vendors ORDER BY name");
@@ -90,6 +108,12 @@ export async function POST(request: NextRequest) {
       contact_person,
       contact_phone,
       tax_email,
+      bank_code,
+      bank_account,
+      business_certificate_file_url,
+      business_certificate_file_name,
+      business_certificate_file_size,
+      business_certificate_mime_type,
     } = await request.json();
 
     // 필수 필드 검증
@@ -124,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     // 생성
     const result = await db.execute(
-      "INSERT INTO vendors (workspace_id, business_number, name, contact_person, contact_phone, tax_email) VALUES ($1, $2, $3, $4, $5, $6)",
+      "INSERT INTO vendors (workspace_id, business_number, name, contact_person, contact_phone, tax_email, bank_code, bank_account, business_certificate_file_url, business_certificate_file_name, business_certificate_file_size, business_certificate_mime_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
       [
         workspace_id,
         business_number?.trim() || null,
@@ -132,6 +156,12 @@ export async function POST(request: NextRequest) {
         contact_person?.trim() || null,
         contact_phone?.trim() || null,
         tax_email?.trim() || null,
+        bank_code?.trim() || null,
+        bank_account?.trim() || null,
+        business_certificate_file_url || null,
+        business_certificate_file_name || null,
+        business_certificate_file_size || null,
+        business_certificate_mime_type || null,
       ]
     );
 
@@ -151,6 +181,12 @@ export async function POST(request: NextRequest) {
       contact_person: string | null;
       contact_phone: string | null;
       tax_email: string | null;
+      bank_code: string | null;
+      bank_account: string | null;
+      business_certificate_file_url: string | null;
+      business_certificate_file_name: string | null;
+      business_certificate_file_size: number | null;
+      business_certificate_mime_type: string | null;
       created_at: string;
       updated_at: string;
     }>(
