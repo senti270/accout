@@ -171,6 +171,25 @@ export default function TransactionDetailPage() {
         }),
       });
 
+      // 응답이 성공적인지 확인
+      if (!response.ok) {
+        const errorText = await response.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          setError(errorData.message || "거래 내역 수정에 실패했습니다.");
+        } catch {
+          setError(`서버 오류 (${response.status}): ${errorText.substring(0, 100)}`);
+        }
+        return;
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        setError(`서버 응답 형식 오류: ${text.substring(0, 100)}`);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -180,8 +199,13 @@ export default function TransactionDetailPage() {
       } else {
         setError(data.message || "거래 내역 수정에 실패했습니다.");
       }
-    } catch (error) {
-      setError("거래 내역 수정 중 오류가 발생했습니다.");
+    } catch (error: any) {
+      console.error("거래 내역 수정 오류:", error);
+      if (error?.message?.includes("JSON")) {
+        setError("서버 응답을 처리할 수 없습니다.");
+      } else {
+        setError(error?.message || "거래 내역 수정 중 오류가 발생했습니다.");
+      }
     }
   };
 

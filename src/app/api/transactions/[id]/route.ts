@@ -84,6 +84,21 @@ export async function PUT(
   try {
     const { id } = await params;
     const transactionId = parseInt(id);
+    
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      console.error("JSON 파싱 오류:", jsonError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "요청 데이터 형식이 올바르지 않습니다." 
+        },
+        { status: 400 }
+      );
+    }
+    
     const {
       project_id,
       vendor_id,
@@ -93,7 +108,7 @@ export async function PUT(
       transaction_date,
       description,
       memo,
-    } = await request.json();
+    } = body;
 
     if (isNaN(transactionId)) {
       return NextResponse.json(
@@ -123,7 +138,8 @@ export async function PUT(
     let paramIndex = 1;
 
     if (project_id !== undefined) {
-      if (project_id.trim() === "") {
+      const projectIdValue = typeof project_id === "string" ? project_id.trim() : String(project_id);
+      if (projectIdValue === "") {
         return NextResponse.json(
           { success: false, message: "프로젝트 ID를 입력해주세요." },
           { status: 400 }
@@ -132,7 +148,7 @@ export async function PUT(
       // 프로젝트 존재 확인
       const project = await db.queryOne<{ id: string }>(
         "SELECT id FROM projects WHERE id = $1",
-        [project_id.trim()]
+        [projectIdValue]
       );
       if (!project) {
         return NextResponse.json(
@@ -141,7 +157,7 @@ export async function PUT(
         );
       }
       updates.push(`project_id = $${paramIndex++}`);
-      values.push(project_id.trim());
+      values.push(projectIdValue);
     }
 
     if (vendor_id !== undefined) {
@@ -169,14 +185,15 @@ export async function PUT(
     }
 
     if (category !== undefined) {
-      if (category.trim() === "") {
+      const categoryValue = typeof category === "string" ? category.trim() : String(category);
+      if (categoryValue === "") {
         return NextResponse.json(
           { success: false, message: "카테고리를 입력해주세요." },
           { status: 400 }
         );
       }
       updates.push(`category = $${paramIndex++}`);
-      values.push(category.trim());
+      values.push(categoryValue);
     }
 
     if (deposit_amount !== undefined) {
@@ -256,10 +273,39 @@ export async function PUT(
       message: "거래 내역이 수정되었습니다.",
       data: transaction,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("거래 내역 수정 오류:", error);
+    const errorMessage = error?.message || "거래 내역 수정에 실패했습니다.";
+    
+    // 데이터베이스 관련 에러 안내
+    if (errorMessage.includes("no such table") || errorMessage.includes("does not exist")) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "데이터베이스 테이블이 없습니다. /api/init-db를 실행해주세요."
+        },
+        { status: 500 }
+      );
+    }
+    
+    // 컬럼 관련 에러
+    if (errorMessage.includes("no such column")) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "데이터베이스 스키마가 업데이트되지 않았습니다. /api/init-db를 실행해주세요."
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { success: false, message: "거래 내역 수정에 실패했습니다." },
+      { 
+        success: false, 
+        message: errorMessage.length > 200 
+          ? "거래 내역 수정에 실패했습니다. 입력한 데이터를 확인해주세요." 
+          : errorMessage
+      },
       { status: 500 }
     );
   }
