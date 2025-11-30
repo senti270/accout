@@ -110,6 +110,35 @@ export async function PUT(
       );
     }
 
+    // 기존 거래처 정보 조회 (파일 정보 유지를 위해)
+    const existingVendor = await db.queryOne<{
+      business_certificate_file_url: string | null;
+      business_certificate_file_name: string | null;
+      business_certificate_file_size: number | null;
+      business_certificate_mime_type: string | null;
+    }>(
+      "SELECT business_certificate_file_url, business_certificate_file_name, business_certificate_file_size, business_certificate_mime_type FROM vendors WHERE id = $1",
+      [vendorId]
+    );
+
+    // 파일 정보가 제공되지 않으면 기존 값 유지
+    const finalFileUrl =
+      business_certificate_file_url !== undefined
+        ? business_certificate_file_url || null
+        : existingVendor?.business_certificate_file_url || null;
+    const finalFileName =
+      business_certificate_file_name !== undefined
+        ? business_certificate_file_name || null
+        : existingVendor?.business_certificate_file_name || null;
+    const finalFileSize =
+      business_certificate_file_size !== undefined
+        ? business_certificate_file_size || null
+        : existingVendor?.business_certificate_file_size || null;
+    const finalMimeType =
+      business_certificate_mime_type !== undefined
+        ? business_certificate_mime_type || null
+        : existingVendor?.business_certificate_mime_type || null;
+
     // 수정
     const result = await db.execute(
       "UPDATE vendors SET business_number = $1, name = $2, contact_person = $3, contact_phone = $4, tax_email = $5, bank_code = $6, bank_account = $7, business_certificate_file_url = $8, business_certificate_file_name = $9, business_certificate_file_size = $10, business_certificate_mime_type = $11, updated_at = CURRENT_TIMESTAMP WHERE id = $12",
@@ -121,10 +150,10 @@ export async function PUT(
         tax_email?.trim() || null,
         bank_code?.trim() || null,
         bank_account?.trim() || null,
-        business_certificate_file_url || null,
-        business_certificate_file_name || null,
-        business_certificate_file_size || null,
-        business_certificate_mime_type || null,
+        finalFileUrl,
+        finalFileName,
+        finalFileSize,
+        finalMimeType,
         vendorId,
       ]
     );

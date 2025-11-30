@@ -625,153 +625,38 @@ export default function VendorManagementModal({
                   ) : (
                     vendors.map((vendor) => (
                       <Fragment key={vendor.id}>
-                        <tr>
+                        <tr className={editingId === vendor.id ? "bg-gray-50" : ""}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {editingId === vendor.id ? (
-                            <input
-                              type="text"
-                              value={editData.name}
-                              onChange={(e) =>
-                                setEditData({ ...editData, name: e.target.value })
-                              }
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                              autoFocus
-                            />
-                          ) : (
-                            <div className="text-sm font-medium text-gray-900">
-                              {vendor.name}
-                            </div>
-                          )}
+                          <div className="text-sm font-medium text-gray-900">
+                            {vendor.name}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {editingId === vendor.id ? (
-                            <input
-                              type="text"
-                              value={editData.business_number}
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  business_number: e.target.value,
-                                })
-                              }
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                            />
-                          ) : (
-                            vendor.business_number || "-"
-                          )}
+                          {vendor.business_number || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {editingId === vendor.id ? (
-                            <input
-                              type="text"
-                              value={editData.contact_person}
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  contact_person: e.target.value,
-                                })
-                              }
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                            />
-                          ) : (
-                            vendor.contact_person || "-"
-                          )}
+                          {vendor.contact_person || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {editingId === vendor.id ? (
-                            <input
-                              type="text"
-                              value={editData.contact_phone}
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  contact_phone: e.target.value,
-                                })
-                              }
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                            />
-                          ) : (
-                            vendor.contact_phone || "-"
-                          )}
+                          {vendor.contact_phone || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {editingId === vendor.id ? (
-                            <input
-                              type="email"
-                              value={editData.tax_email}
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  tax_email: e.target.value,
-                                })
-                              }
-                              className="px-2 py-1 border border-gray-300 rounded-md text-sm"
-                            />
-                          ) : (
-                            vendor.tax_email || "-"
-                          )}
+                          {vendor.tax_email || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {editingId === vendor.id ? (
-                            <div className="space-y-1">
-                              <select
-                                value={editData.bank_code}
-                                onChange={(e) =>
-                                  setEditData({
-                                    ...editData,
-                                    bank_code: e.target.value,
-                                  })
-                                }
-                                className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
-                              >
-                                <option value="">은행 선택</option>
-                                {banks.map((bank) => (
-                                  <option key={bank.code} value={bank.code}>
-                                    {bank.name}
-                                  </option>
-                                ))}
-                              </select>
-                              <input
-                                type="text"
-                                value={editData.bank_account}
-                                onChange={(e) =>
-                                  setEditData({
-                                    ...editData,
-                                    bank_account: e.target.value,
-                                  })
-                                }
-                                placeholder="계좌번호"
-                                className="w-full px-2 py-1 border border-gray-300 rounded-md text-xs"
-                              />
-                            </div>
-                          ) : (
-                            <div className="text-xs">
-                              {vendor.bank_code
-                                ? `${getBankName(vendor.bank_code)}`
-                                : "-"}
-                              {vendor.bank_account && (
-                                <div className="text-gray-600">
-                                  {vendor.bank_account}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                          <div className="text-sm">
+                            {vendor.bank_code
+                              ? getBankName(vendor.bank_code)
+                              : "-"}
+                            {vendor.bank_account && (
+                              <div className="text-gray-600 text-xs">
+                                {vendor.bank_account}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {editingId === vendor.id ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const fileInput = editCertificateFileInputRef.current;
-                                if (fileInput) {
-                                  fileInput.click();
-                                }
-                              }}
-                              className="text-xs text-indigo-600 hover:text-indigo-800"
-                            >
-                              파일 변경
-                            </button>
-                          ) : vendor.business_certificate_file_url ? (
+                          {vendor.business_certificate_file_url ? (
                             <a
                               href={vendor.business_certificate_file_url}
                               target="_blank"
@@ -786,35 +671,7 @@ export default function VendorManagementModal({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           {editingId === vendor.id ? (
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => handleUpdate(vendor.id)}
-                                className="text-indigo-600 hover:text-indigo-900"
-                              >
-                                저장
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingId(null);
-                                  setEditData({
-                                    business_number: "",
-                                    name: "",
-                                    contact_person: "",
-                                    contact_phone: "",
-                                    tax_email: "",
-                                    bank_code: "",
-                                    bank_account: "",
-                                  });
-                                  setPendingEditCertificateFile(null);
-                                  if (editCertificateFileInputRef.current) {
-                                    editCertificateFileInputRef.current.value = "";
-                                  }
-                                }}
-                                className="text-gray-600 hover:text-gray-900"
-                              >
-                                취소
-                              </button>
-                            </div>
+                            <span className="text-indigo-600">수정 중...</span>
                           ) : (
                             <div className="flex justify-end gap-2">
                               <button
@@ -841,10 +698,130 @@ export default function VendorManagementModal({
                                 e.preventDefault();
                                 handleUpdate(vendor.id);
                               }}
-                              className="p-4 bg-white border border-gray-200 rounded-md"
+                              className="p-6 bg-white border border-gray-200 rounded-md"
                               onPaste={handleEditCertificatePaste}
                             >
+                              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                거래처 수정
+                              </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    거래처명 *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editData.name}
+                                    onChange={(e) =>
+                                      setEditData({ ...editData, name: e.target.value })
+                                    }
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    사업자번호
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editData.business_number}
+                                    onChange={(e) =>
+                                      setEditData({
+                                        ...editData,
+                                        business_number: e.target.value,
+                                      })
+                                    }
+                                    placeholder="000-00-00000"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    담당자
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editData.contact_person}
+                                    onChange={(e) =>
+                                      setEditData({
+                                        ...editData,
+                                        contact_person: e.target.value,
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    담당자 연락처
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editData.contact_phone}
+                                    onChange={(e) =>
+                                      setEditData({
+                                        ...editData,
+                                        contact_phone: e.target.value,
+                                      })
+                                    }
+                                    placeholder="010-0000-0000"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                                <div className="md:col-span-2">
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    세금계산서 이메일 주소
+                                  </label>
+                                  <input
+                                    type="email"
+                                    value={editData.tax_email}
+                                    onChange={(e) =>
+                                      setEditData({ ...editData, tax_email: e.target.value })
+                                    }
+                                    placeholder="example@email.com"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    은행명
+                                  </label>
+                                  <select
+                                    value={editData.bank_code}
+                                    onChange={(e) =>
+                                      setEditData({
+                                        ...editData,
+                                        bank_code: e.target.value,
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  >
+                                    <option value="">선택하세요</option>
+                                    {banks.map((bank) => (
+                                      <option key={bank.code} value={bank.code}>
+                                        {bank.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    은행계좌
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editData.bank_account}
+                                    onChange={(e) =>
+                                      setEditData({
+                                        ...editData,
+                                        bank_account: e.target.value,
+                                      })
+                                    }
+                                    placeholder="계좌번호"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
                                 <div className="md:col-span-2">
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
                                     사업자등록증 파일 첨부 또는 이미지 붙여넣기
@@ -856,26 +833,11 @@ export default function VendorManagementModal({
                                       handleCertificateFileSelect(e, true)
                                     }
                                     ref={editCertificateFileInputRef}
-                                    className="hidden"
+                                    className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white focus:outline-none"
                                   />
-                                  <div className="flex gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const fileInput =
-                                          editCertificateFileInputRef.current;
-                                        if (fileInput) {
-                                          fileInput.click();
-                                        }
-                                      }}
-                                      className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                                    >
-                                      파일 선택
-                                    </button>
-                                    <p className="text-xs text-gray-500 self-center">
-                                      또는 이미지를 붙여넣으세요.
-                                    </p>
-                                  </div>
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    이미지를 직접 붙여넣거나 파일을 선택하세요.
+                                  </p>
                                 </div>
 
                                 {pendingEditCertificateFile && (
@@ -931,6 +893,36 @@ export default function VendorManagementModal({
                                       </p>
                                     </div>
                                   )}
+                              </div>
+                              <div className="mt-4 flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingId(null);
+                                    setEditData({
+                                      business_number: "",
+                                      name: "",
+                                      contact_person: "",
+                                      contact_phone: "",
+                                      tax_email: "",
+                                      bank_code: "",
+                                      bank_account: "",
+                                    });
+                                    setPendingEditCertificateFile(null);
+                                    if (editCertificateFileInputRef.current) {
+                                      editCertificateFileInputRef.current.value = "";
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
+                                >
+                                  취소
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                >
+                                  저장
+                                </button>
                               </div>
                             </form>
                           </td>
