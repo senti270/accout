@@ -79,12 +79,17 @@ export async function POST(
       );
     }
 
-    if (!image_url || image_url.trim() === "") {
+    if (!image_url || (typeof image_url === "string" && image_url.trim() === "")) {
       return NextResponse.json(
         { success: false, message: "이미지 URL을 입력해주세요." },
         { status: 400 }
       );
     }
+    
+    // base64 데이터 URL인 경우 trim하지 않음
+    const imageUrlValue = typeof image_url === "string" && image_url.startsWith("data:") 
+      ? image_url 
+      : (typeof image_url === "string" ? image_url.trim() : image_url);
 
     const db = getDatabase();
 
@@ -106,7 +111,7 @@ export async function POST(
       "INSERT INTO transaction_receipts (transaction_id, image_url, file_name, file_size, mime_type) VALUES ($1, $2, $3, $4, $5)",
       [
         transactionId,
-        image_url.trim(),
+        imageUrlValue,
         file_name || null,
         file_size || null,
         mime_type || null,
@@ -130,8 +135,8 @@ export async function POST(
       mime_type: string | null;
       created_at: string;
     }>(
-      "SELECT * FROM transaction_receipts WHERE transaction_id = $1 AND image_url = $2 ORDER BY id DESC LIMIT 1",
-      [transactionId, image_url.trim()]
+      "SELECT * FROM transaction_receipts WHERE transaction_id = $1 ORDER BY id DESC LIMIT 1",
+      [transactionId]
     );
 
     return NextResponse.json(
@@ -142,10 +147,26 @@ export async function POST(
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("증빙서류 추가 오류:", error);
+    const errorMessage = error?.message || "증빙서류 추가에 실패했습니다.";
+    
+    // 데이터베이스 관련 에러 안내
+    if (errorMessage.includes("no such table") || errorMessage.includes("does not exist")) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "데이터베이스 테이블이 없습니다. /api/init-db를 실행해주세요."
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { success: false, message: "증빙서류 추가에 실패했습니다." },
+      { 
+        success: false, 
+        message: errorMessage.length > 100 ? "증빙서류 추가에 실패했습니다. 파일 크기를 확인해주세요." : errorMessage
+      },
       { status: 500 }
     );
   }

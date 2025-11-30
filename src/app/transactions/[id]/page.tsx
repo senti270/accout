@@ -290,8 +290,9 @@ export default function TransactionDetailPage() {
       } else {
         setError(data.message || "증빙서류 추가에 실패했습니다.");
       }
-    } catch (error) {
-      setError("증빙서류 추가 중 오류가 발생했습니다.");
+    } catch (error: any) {
+      console.error("증빙서류 추가 오류:", error);
+      setError(error?.message || "증빙서류 추가 중 오류가 발생했습니다.");
     }
   };
 
