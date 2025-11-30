@@ -33,9 +33,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, [router, pathname]);
 
   useEffect(() => {
-    // 워크스페이스 ID를 localStorage에 저장
+    // 워크스페이스 ID를 localStorage에 저장하고 변경 이벤트 발생
     if (selectedWorkspaceId) {
       localStorage.setItem("selectedWorkspaceId", selectedWorkspaceId.toString());
+      // 워크스페이스 변경 이벤트 발생 (각 페이지에서 구독)
+      window.dispatchEvent(new CustomEvent("workspaceChanged", {
+        detail: { workspaceId: selectedWorkspaceId }
+      }));
     }
   }, [selectedWorkspaceId]);
 

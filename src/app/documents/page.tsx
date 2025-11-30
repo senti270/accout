@@ -48,6 +48,24 @@ export default function DocumentsPage() {
   }, []);
 
   useEffect(() => {
+    // 워크스페이스 변경 이벤트 구독
+    const handleWorkspaceChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ workspaceId: number }>;
+      const newWorkspaceId = customEvent.detail?.workspaceId;
+      if (newWorkspaceId) {
+        setSelectedWorkspaceId(newWorkspaceId);
+        fetchDocuments(newWorkspaceId);
+      }
+    };
+
+    window.addEventListener("workspaceChanged", handleWorkspaceChange);
+
+    return () => {
+      window.removeEventListener("workspaceChanged", handleWorkspaceChange);
+    };
+  }, []);
+
+  useEffect(() => {
     if (selectedWorkspaceId) {
       fetchDocuments(selectedWorkspaceId);
     }
