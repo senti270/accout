@@ -201,6 +201,21 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("거래처 생성 오류:", error);
     const errorMessage = error?.message || "거래처 생성에 실패했습니다.";
+    
+    // 컬럼이 없는 경우 마이그레이션 안내
+    if (errorMessage.includes("no such column") && 
+        (errorMessage.includes("business_certificate") || 
+         errorMessage.includes("bank_code") || 
+         errorMessage.includes("bank_account"))) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: "데이터베이스 스키마가 업데이트되지 않았습니다. 브라우저에서 /api/migrate-vendor-fields 페이지를 열어주세요."
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
