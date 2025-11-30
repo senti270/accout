@@ -189,10 +189,16 @@ export async function PUT(
       message: "거래처가 수정되었습니다.",
       data: vendor,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("거래처 수정 오류:", error);
+    const errorMessage = error?.message || "거래처 수정에 실패했습니다.";
     return NextResponse.json(
-      { success: false, message: "거래처 수정에 실패했습니다." },
+      { 
+        success: false, 
+        message: errorMessage.includes("no such table") || errorMessage.includes("does not exist")
+          ? "데이터베이스 테이블이 없습니다. /api/init-db를 실행해주세요."
+          : errorMessage
+      },
       { status: 500 }
     );
   }
