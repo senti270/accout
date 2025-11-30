@@ -245,15 +245,15 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleFileDownload = (document: Document) => {
-    if (!document.file_url) return;
+  const handleFileDownload = (doc: Document) => {
+    if (!doc.file_url) return;
     
     // base64 데이터인 경우
-    if (document.file_url.startsWith("data:")) {
+    if (doc.file_url.startsWith("data:")) {
       try {
         // base64 데이터에서 MIME 타입과 데이터 추출
-        const base64Data = document.file_url.split(",")[1];
-        const mimeType = document.file_url.split(",")[0].split(":")[1].split(";")[0];
+        const base64Data = doc.file_url.split(",")[1];
+        const mimeType = doc.file_url.split(",")[0].split(":")[1].split(";")[0];
         const byteCharacters = atob(base64Data);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -266,7 +266,7 @@ export default function DocumentsPage() {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = document.file_name || document.title || "파일";
+        link.download = doc.file_name || doc.title || "파일";
         link.style.display = "none";
         document.body.appendChild(link);
         link.click();
@@ -278,7 +278,7 @@ export default function DocumentsPage() {
       }
     } else {
       // 일반 URL인 경우 새 창에서 열기
-      window.open(document.file_url, "_blank");
+      window.open(doc.file_url, "_blank");
     }
   };
 
