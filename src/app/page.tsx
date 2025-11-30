@@ -13,18 +13,34 @@ interface DashboardStats {
   totalDeposit: number;
   totalWithdrawal: number;
   totalDocuments: number;
+  totalVendors: number;
+  monthDeposit: number;
+  monthWithdrawal: number;
   projects: Array<{
     id: string;
+    name: string;
+  }>;
+  vendors: Array<{
+    id: number;
     name: string;
   }>;
   recentTransactions: Array<{
     id: number;
     project_id: string;
+    vendor_id: number | null;
     category: string;
+    description: string | null;
     deposit_amount: number;
     withdrawal_amount: number;
     transaction_date: string;
     memo: string | null;
+  }>;
+  projectStats: Array<{
+    project_id: string;
+    project_name: string;
+    total_deposit: number;
+    total_withdrawal: number;
+    transaction_count: number;
   }>;
 }
 
@@ -75,6 +91,14 @@ export default function Dashboard() {
       const projects = projectsData.success ? projectsData.data : [];
       const totalProjects = projects.length;
 
+      // 거래처 수 및 목록
+      const vendorsRes = await fetch(
+        `/api/vendors?workspace_id=${workspaceId}`
+      );
+      const vendorsData = await vendorsRes.json();
+      const vendors = vendorsData.success ? vendorsData.data : [];
+      const totalVendors = vendors.length;
+
       // 거래 내역 통계
       const transactionsRes = await fetch(
         `/api/transactions?workspace_id=${workspaceId}&limit=1000`
@@ -83,27 +107,70 @@ export default function Dashboard() {
       let totalTransactions = 0;
       let totalDeposit = 0;
       let totalWithdrawal = 0;
+      let monthDeposit = 0;
+      let monthWithdrawal = 0;
       let recentTransactions: DashboardStats["recentTransactions"] = [];
+      let projectStatsMap: {
+        [key: string]: {
+          project_name: string;
+          total_deposit: number;
+          total_withdrawal: number;
+          transaction_count: number;
+        };
+      } = {};
 
       if (transactionsData.success) {
         const transactions = transactionsData.data || [];
         totalTransactions = transactions.length;
-        totalDeposit = transactions.reduce(
-          (sum: number, t: any) => sum + (t.deposit_amount || 0),
-          0
-        );
-        totalWithdrawal = transactions.reduce(
-          (sum: number, t: any) => sum + (t.withdrawal_amount || 0),
-          0
-        );
+
+        // 이번 달 날짜 계산
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const firstDayStr = firstDayOfMonth.toISOString().split("T")[0];
+
+        transactions.forEach((t: any) => {
+          totalDeposit += t.deposit_amount || 0;
+          totalWithdrawal += t.withdrawal_amount || 0;
+
+          // 이번 달 통계
+          if (t.transaction_date >= firstDayStr) {
+            monthDeposit += t.deposit_amount || 0;
+            monthWithdrawal += t.withdrawal_amount || 0;
+          }
+
+          // 프로젝트별 통계
+          const projectId = t.project_id;
+          if (!projectStatsMap[projectId]) {
+            const project = projects.find((p: any) => p.id === projectId);
+            projectStatsMap[projectId] = {
+              project_name: project?.name || projectId,
+              total_deposit: 0,
+              total_withdrawal: 0,
+              transaction_count: 0,
+            };
+          }
+          projectStatsMap[projectId].total_deposit += t.deposit_amount || 0;
+          projectStatsMap[projectId].total_withdrawal +=
+            t.withdrawal_amount || 0;
+          projectStatsMap[projectId].transaction_count += 1;
+        });
+
         recentTransactions = transactions
           .sort(
             (a: any, b: any) =>
               new Date(b.transaction_date).getTime() -
               new Date(a.transaction_date).getTime()
           )
-          .slice(0, 5);
+          .slice(0, 10);
       }
+
+      // 프로젝트별 통계 배열로 변환
+      const projectStats = Object.entries(projectStatsMap).map(
+        ([project_id, stats]) => ({
+          project_id,
+          ...stats,
+        })
+      );
 
       // 서류 수
       const documentsRes = await fetch(
@@ -120,8 +187,15 @@ export default function Dashboard() {
         totalDeposit,
         totalWithdrawal,
         totalDocuments,
+        totalVendors,
+        monthDeposit,
+        monthWithdrawal,
         projects,
+        vendors,
         recentTransactions,
+        projectStats: projectStats.sort(
+          (a, b) => b.total_deposit + b.total_withdrawal - (a.total_deposit + a.total_withdrawal)
+        ).slice(0, 5),
       });
     } catch (error) {
       console.error("대시보드 데이터 조회 오류:", error);
@@ -149,6 +223,7 @@ export default function Dashboard() {
   }
 
   const netAmount = (stats?.totalDeposit || 0) - (stats?.totalWithdrawal || 0);
+  const monthNetAmount = (stats?.monthDeposit || 0) - (stats?.monthWithdrawal || 0);
 
   return (
     <Layout>
@@ -216,14 +291,14 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">총 입금액</p>
-                <p className="text-2xl font-bold text-green-600 mt-2">
-                  {stats?.totalDeposit.toLocaleString() || 0}원
+                <p className="text-sm font-medium text-gray-600">거래처 수</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">
+                  {stats?.totalVendors || 0}
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
+              <div className="p-3 bg-blue-100 rounded-full">
                 <svg
-                  className="w-6 h-6 text-green-600"
+                  className="w-6 h-6 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -232,7 +307,7 @@ export default function Dashboard() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 4v16m8-8H4"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   />
                 </svg>
               </div>
@@ -242,14 +317,14 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">총 출금액</p>
-                <p className="text-2xl font-bold text-red-600 mt-2">
-                  {stats?.totalWithdrawal.toLocaleString() || 0}원
+                <p className="text-sm font-medium text-gray-600">서류 수</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">
+                  {stats?.totalDocuments || 0}
                 </p>
               </div>
-              <div className="p-3 bg-red-100 rounded-full">
+              <div className="p-3 bg-purple-100 rounded-full">
                 <svg
-                  className="w-6 h-6 text-red-600"
+                  className="w-6 h-6 text-purple-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -258,7 +333,7 @@ export default function Dashboard() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M20 12H4"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
               </div>
@@ -266,17 +341,54 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 순 금액 */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">순 금액</h2>
-            <p
-              className={`text-3xl font-bold ${
-                netAmount >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {netAmount.toLocaleString()}원
-            </p>
+        {/* 금액 통계 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 전체 순 금액 */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">전체 순 금액</h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">총 입금</p>
+                <p className="text-xl font-bold text-green-600 mt-1">
+                  {stats?.totalDeposit.toLocaleString() || 0}원
+                </p>
+                <p className="text-sm text-gray-600 mt-2">총 출금</p>
+                <p className="text-xl font-bold text-red-600 mt-1">
+                  {stats?.totalWithdrawal.toLocaleString() || 0}원
+                </p>
+              </div>
+              <p
+                className={`text-3xl font-bold ${
+                  netAmount >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {netAmount.toLocaleString()}원
+              </p>
+            </div>
+          </div>
+
+          {/* 이번 달 순 금액 */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">이번 달 순 금액</h2>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">이번 달 입금</p>
+                <p className="text-xl font-bold text-green-600 mt-1">
+                  {stats?.monthDeposit.toLocaleString() || 0}원
+                </p>
+                <p className="text-sm text-gray-600 mt-2">이번 달 출금</p>
+                <p className="text-xl font-bold text-red-600 mt-1">
+                  {stats?.monthWithdrawal.toLocaleString() || 0}원
+                </p>
+              </div>
+              <p
+                className={`text-3xl font-bold ${
+                  monthNetAmount >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {monthNetAmount.toLocaleString()}원
+              </p>
+            </div>
           </div>
         </div>
 
@@ -309,7 +421,13 @@ export default function Dashboard() {
                       프로젝트
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      거래처
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       카테고리
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">
+                      내역
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       입금
@@ -324,31 +442,45 @@ export default function Dashboard() {
                     const project = stats?.projects.find(
                       (p) => p.id === transaction.project_id
                     );
+                    const vendor = stats?.vendors.find(
+                      (v) => v.id === transaction.vendor_id
+                    );
                     return (
                       <tr key={transaction.id}>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
                           {new Date(transaction.transaction_date).toLocaleDateString(
                             "ko-KR"
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
                           {project?.name || transaction.project_id}
                         </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {transaction.category}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-green-600">
-                        {transaction.deposit_amount > 0
-                          ? transaction.deposit_amount.toLocaleString() + "원"
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-red-600">
-                        {transaction.withdrawal_amount > 0
-                          ? transaction.withdrawal_amount.toLocaleString() + "원"
-                          : "-"}
-                      </td>
-                    </tr>
-                  );
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                          {vendor?.name || "-"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
+                          {transaction.category}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-600 max-w-xs break-words">
+                          <Link
+                            href={`/transactions/${transaction.id}`}
+                            className="text-indigo-600 hover:text-indigo-900 hover:underline"
+                          >
+                            {transaction.description || "-"}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-green-600">
+                          {transaction.deposit_amount > 0
+                            ? transaction.deposit_amount.toLocaleString() + "원"
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-red-600">
+                          {transaction.withdrawal_amount > 0
+                            ? transaction.withdrawal_amount.toLocaleString() + "원"
+                            : "-"}
+                        </td>
+                      </tr>
+                    );
                   })}
                 </tbody>
               </table>
@@ -356,8 +488,74 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* 프로젝트별 요약 */}
+        {stats && stats.projectStats.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                프로젝트별 요약 (상위 5개)
+              </h2>
+              <Link
+                href="/reports"
+                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+              >
+                전체 보고서 보기 →
+              </Link>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      프로젝트
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      거래 건수
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      총 입금
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      총 출금
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      순 금액
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {stats.projectStats.map((project) => {
+                    const net = project.total_deposit - project.total_withdrawal;
+                    return (
+                      <tr key={project.project_id}>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-900">
+                          {project.project_name}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-gray-600">
+                          {project.transaction_count}건
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-green-600">
+                          {project.total_deposit.toLocaleString()}원
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-red-600">
+                          {project.total_withdrawal.toLocaleString()}원
+                        </td>
+                        <td className={`px-4 py-3 whitespace-nowrap text-xs text-right font-medium ${
+                          net >= 0 ? "text-green-600" : "text-red-600"
+                        }`}>
+                          {net.toLocaleString()}원
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* 빠른 메뉴 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Link
             href="/transactions"
             className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
@@ -389,6 +587,28 @@ export default function Dashboard() {
             </h3>
             <p className="text-sm text-gray-600">
               사업자등록증, 임대차계약서 등을 관리합니다.
+            </p>
+          </Link>
+          <Link
+            href="/reports"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              보고서
+            </h3>
+            <p className="text-sm text-gray-600">
+              프로젝트별 또는 기간별 통계를 조회합니다.
+            </p>
+          </Link>
+          <Link
+            href="/transactions"
+            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              거래처 관리
+            </h3>
+            <p className="text-sm text-gray-600">
+              거래처 정보를 관리합니다. (입출금 내역에서 관리)
             </p>
           </Link>
         </div>
