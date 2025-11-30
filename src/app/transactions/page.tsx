@@ -515,31 +515,31 @@ export default function TransactionsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     거래일자
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     프로젝트
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     거래처
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     카테고리
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
                     내역
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     입금액
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     출금액
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     메모
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     작업
                   </th>
                 </tr>
@@ -564,37 +564,37 @@ export default function TransactionsPage() {
                     );
                     return (
                       <tr key={transaction.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
                           {new Date(transaction.transaction_date).toLocaleDateString(
                             "ko-KR"
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
                           {project?.name || transaction.project_id}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600">
                           {vendor?.name || "-"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-900">
                           {transaction.category}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-xs text-gray-600 max-w-xs break-words">
                           {transaction.description || "-"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-green-600">
                           {transaction.deposit_amount > 0
                             ? transaction.deposit_amount.toLocaleString()
                             : "-"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-red-600">
                           {transaction.withdrawal_amount > 0
                             ? transaction.withdrawal_amount.toLocaleString()
                             : "-"}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
+                        <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
                           {transaction.memo || "-"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-4 py-3 whitespace-nowrap text-right text-xs font-medium">
                           <Link
                             href={`/transactions/${transaction.id}`}
                             className="text-indigo-600 hover:text-indigo-900 mr-3"
