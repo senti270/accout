@@ -277,7 +277,7 @@ export default function ProjectsPage() {
   };
 
   const handlePaste = async (
-    e: React.ClipboardEvent<HTMLDivElement>,
+    e: React.ClipboardEvent<HTMLElement>,
     projectId: string
   ) => {
     const items = e.clipboardData.items;

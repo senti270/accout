@@ -170,7 +170,7 @@ export default function DocumentsPage() {
     }
   };
 
-  const handlePaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+  const handlePaste = async (e: React.ClipboardEvent<HTMLElement>) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
