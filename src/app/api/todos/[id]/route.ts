@@ -95,24 +95,24 @@ export async function PUT(
 
     // 업데이트할 필드 구성
     const updates: string[] = [];
-    const params: unknown[] = [];
+    const sqlParams: unknown[] = [];
     let paramIndex = 1;
 
     if (title !== undefined) {
       updates.push(`title = $${paramIndex++}`);
-      params.push(title.trim());
+      sqlParams.push(title.trim());
     }
     if (content !== undefined) {
       updates.push(`content = $${paramIndex++}`);
-      params.push(content?.trim() || null);
+      sqlParams.push(content?.trim() || null);
     }
     if (due_date !== undefined) {
       updates.push(`due_date = $${paramIndex++}`);
-      params.push(due_date || null);
+      sqlParams.push(due_date || null);
     }
     if (is_completed !== undefined) {
       updates.push(`is_completed = $${paramIndex++}`);
-      params.push(is_completed ? 1 : 0);
+      sqlParams.push(is_completed ? 1 : 0);
     }
 
     if (updates.length === 0) {
@@ -122,11 +122,11 @@ export async function PUT(
       );
     }
 
-    params.push(todoId);
+    sqlParams.push(todoId);
     const sql = `UPDATE todos SET ${updates.join(", ")} WHERE id = $${paramIndex}`;
 
     // 수정
-    const result = await db.execute(sql, params);
+    const result = await db.execute(sql, sqlParams);
 
     if (result.rowCount === 0) {
       return NextResponse.json(

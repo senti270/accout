@@ -111,16 +111,16 @@ export async function PUT(
 
     // 업데이트할 필드 구성
     const updates: string[] = [];
-    const params: unknown[] = [];
+    const sqlParams: unknown[] = [];
     let paramIndex = 1;
 
     if (title !== undefined) {
       updates.push(`title = $${paramIndex++}`);
-      params.push(title.trim());
+      sqlParams.push(title.trim());
     }
     if (url !== undefined) {
       updates.push(`url = $${paramIndex++}`);
-      params.push(url.trim());
+      sqlParams.push(url.trim());
     }
 
     if (updates.length === 0) {
@@ -130,11 +130,11 @@ export async function PUT(
       );
     }
 
-    params.push(bookmarkId);
+    sqlParams.push(bookmarkId);
     const sql = `UPDATE bookmarks SET ${updates.join(", ")} WHERE id = $${paramIndex}`;
 
     // 수정
-    const result = await db.execute(sql, params);
+    const result = await db.execute(sql, sqlParams);
 
     if (result.rowCount === 0) {
       return NextResponse.json(
