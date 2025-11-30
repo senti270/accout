@@ -539,16 +539,13 @@ export default function TransactionsPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     메모
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {transactions.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={8}
                       className="px-6 py-4 text-center text-gray-500"
                     >
                       거래 내역이 없습니다.
@@ -579,7 +576,12 @@ export default function TransactionsPage() {
                           {transaction.category}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-600 max-w-xs break-words">
-                          {transaction.description || "-"}
+                          <Link
+                            href={`/transactions/${transaction.id}`}
+                            className="text-indigo-600 hover:text-indigo-900 hover:underline cursor-pointer block"
+                          >
+                            {transaction.description || "-"}
+                          </Link>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-xs text-right text-green-600">
                           {transaction.deposit_amount > 0
@@ -593,20 +595,6 @@ export default function TransactionsPage() {
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
                           {transaction.memo || "-"}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right text-xs font-medium">
-                          <Link
-                            href={`/transactions/${transaction.id}`}
-                            className="text-indigo-600 hover:text-indigo-900 mr-3"
-                          >
-                            상세
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(transaction.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            삭제
-                          </button>
                         </td>
                       </tr>
                     );
