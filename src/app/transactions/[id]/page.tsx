@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import Link from "next/link";
 import VendorAutocomplete from "@/components/VendorAutocomplete";
+import VendorManagementModal from "@/components/VendorManagementModal";
 
 interface Transaction {
   id: number;
@@ -52,6 +53,7 @@ export default function TransactionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [showAddReceipt, setShowAddReceipt] = useState(false);
+  const [showVendorModal, setShowVendorModal] = useState(false);
   const [vendorAutocompleteKey, setVendorAutocompleteKey] = useState(0);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<number | null>(
     null
@@ -382,6 +384,7 @@ export default function TransactionDetailPage() {
                     onChange={(vendorId) => {
                       setFormData({ ...formData, vendor_id: vendorId });
                     }}
+                    onManageClick={() => setShowVendorModal(true)}
                   />
                 </div>
               )}
@@ -483,65 +486,63 @@ export default function TransactionDetailPage() {
           </form>
         ) : (
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">프로젝트</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {project?.name || transaction.project_id}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">카테고리</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {transaction.category}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">거래처</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {vendor?.name || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">거래일자</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {new Date(transaction.transaction_date).toLocaleDateString(
-                    "ko-KR"
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">입금액</p>
-                <p className="text-lg font-semibold text-green-600">
-                  {transaction.deposit_amount > 0
-                    ? transaction.deposit_amount.toLocaleString() + "원"
-                    : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">출금액</p>
-                <p className="text-lg font-semibold text-red-600">
-                  {transaction.withdrawal_amount > 0
-                    ? transaction.withdrawal_amount.toLocaleString() + "원"
-                    : "-"}
-                </p>
-              </div>
-              {transaction.description && (
-                <div className="md:col-span-2">
-                  <p className="text-sm text-gray-600">내역</p>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="pb-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-500 mb-1">프로젝트</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {transaction.description}
+                    {project?.name || transaction.project_id}
                   </p>
                 </div>
-              )}
-              {transaction.memo && (
-                <div className="md:col-span-2">
-                  <p className="text-sm text-gray-600">메모</p>
+                <div className="pb-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-500 mb-1">카테고리</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {transaction.memo}
+                    {transaction.category}
                   </p>
                 </div>
-              )}
+                <div className="pb-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-500 mb-1">거래처</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {vendor?.name || "-"}
+                  </p>
+                </div>
+                <div className="pb-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-500 mb-1">거래일자</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {new Date(transaction.transaction_date).toLocaleDateString(
+                      "ko-KR"
+                    )}
+                  </p>
+                </div>
+                <div className="pb-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-500 mb-1">입금액</p>
+                  <p className="text-lg font-semibold text-green-600">
+                    {transaction.deposit_amount > 0
+                      ? transaction.deposit_amount.toLocaleString() + "원"
+                      : "-"}
+                  </p>
+                </div>
+                <div className="pb-4 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-500 mb-1">출금액</p>
+                  <p className="text-lg font-semibold text-red-600">
+                    {transaction.withdrawal_amount > 0
+                      ? transaction.withdrawal_amount.toLocaleString() + "원"
+                      : "-"}
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-gray-200">
+                <p className="text-sm font-medium text-gray-500 mb-1">내역</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {transaction.description || "-"}
+                </p>
+              </div>
+              <div className="pt-2 border-t border-gray-200">
+                <p className="text-sm font-medium text-gray-500 mb-1">메모</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {transaction.memo || "-"}
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -646,6 +647,18 @@ export default function TransactionDetailPage() {
           )}
         </div>
       </div>
+
+      {selectedWorkspaceId && (
+        <VendorManagementModal
+          workspaceId={selectedWorkspaceId}
+          isOpen={showVendorModal}
+          onClose={() => setShowVendorModal(false)}
+          onVendorAdded={() => {
+            fetchVendors(selectedWorkspaceId);
+            setVendorAutocompleteKey((prev) => prev + 1);
+          }}
+        />
+      )}
     </Layout>
   );
 }

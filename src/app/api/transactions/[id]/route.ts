@@ -33,6 +33,7 @@ export async function GET(
       deposit_amount: number;
       withdrawal_amount: number;
       transaction_date: string;
+      description: string | null;
       memo: string | null;
       created_at: string;
       updated_at: string;
@@ -90,6 +91,7 @@ export async function PUT(
       deposit_amount,
       withdrawal_amount,
       transaction_date,
+      description,
       memo,
     } = await request.json();
 
@@ -204,6 +206,11 @@ export async function PUT(
       values.push(transaction_date);
     }
 
+    if (description !== undefined) {
+      updates.push(`description = $${paramIndex++}`);
+      values.push(description || null);
+    }
+
     if (memo !== undefined) {
       updates.push(`memo = $${paramIndex++}`);
       values.push(memo || null);
@@ -238,6 +245,7 @@ export async function PUT(
       deposit_amount: number;
       withdrawal_amount: number;
       transaction_date: string;
+      description: string | null;
       memo: string | null;
       created_at: string;
       updated_at: string;
