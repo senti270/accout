@@ -34,7 +34,6 @@ export default function DocumentsPage() {
     title: "",
     file_url: "",
     file_name: "",
-    expiry_date: "",
     memo: "",
   });
 
@@ -140,7 +139,7 @@ export default function DocumentsPage() {
           file_name: fileName,
           file_size: fileSize,
           mime_type: mimeType,
-          expiry_date: formData.expiry_date || null,
+          expiry_date: null,
           memo: formData.memo || null,
         }),
       });
@@ -153,7 +152,6 @@ export default function DocumentsPage() {
           title: "",
           file_url: "",
           file_name: "",
-          expiry_date: "",
           memo: "",
         });
         setPendingFile(null);
@@ -244,6 +242,43 @@ export default function DocumentsPage() {
       }
     } catch (error) {
       setError("서류 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleFileDownload = (document: Document) => {
+    if (!document.file_url) return;
+    
+    // base64 데이터인 경우
+    if (document.file_url.startsWith("data:")) {
+      try {
+        // base64 데이터에서 MIME 타입과 데이터 추출
+        const base64Data = document.file_url.split(",")[1];
+        const mimeType = document.file_url.split(",")[0].split(":")[1].split(";")[0];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+        
+        // 파일 다운로드
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = document.file_name || document.title || "파일";
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("파일 다운로드 오류:", error);
+        setError("파일 다운로드 중 오류가 발생했습니다.");
+      }
+    } else {
+      // 일반 URL인 경우 새 창에서 열기
+      window.open(document.file_url, "_blank");
     }
   };
 
@@ -433,19 +468,6 @@ export default function DocumentsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  유효기간
-                </label>
-                <input
-                  type="date"
-                  value={formData.expiry_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, expiry_date: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   메모
@@ -489,9 +511,6 @@ export default function DocumentsPage() {
                     파일
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    유효기간
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     메모
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -502,7 +521,7 @@ export default function DocumentsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {documents.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                       서류가 없습니다.
                     </td>
                   </tr>
@@ -516,21 +535,12 @@ export default function DocumentsPage() {
                         {document.title}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <a
-                          href={document.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo-600 hover:text-indigo-900"
+                        <button
+                          onClick={() => handleFileDownload(document)}
+                          className="text-indigo-600 hover:text-indigo-900 underline"
                         >
                           {document.file_name || "파일 보기"}
-                        </a>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {document.expiry_date
-                          ? new Date(document.expiry_date).toLocaleDateString(
-                              "ko-KR"
-                            )
-                          : "-"}
+                        </button>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         <div className="max-w-xs truncate">
